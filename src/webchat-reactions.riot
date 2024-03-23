@@ -1,0 +1,17 @@
+<webchat-reactions>
+    <span><a href="#" onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, "thumbsup") }>{this.reactionsEmojis["thumbsup"] ?? "?"}</a></span>
+
+    <p each={reaction in (props.item.data.reactions.list ?? [])}>
+        <a href="#"
+        class=" {reaction.hasReacted ? "bg-blue-500" : ""} "
+        onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, reaction.name)}>{this.reactionsEmojis["thumbsup"] ?? "?"}({reaction.count})</a>
+    </p>
+
+    <script>
+        export default {
+            reactionsEmojis: {
+                "thumbsup": "👍",
+            },
+        }
+    </script>
+</webchat-reactions>

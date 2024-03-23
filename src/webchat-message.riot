@@ -1,0 +1,16 @@
+<webchat-message>
+    <p class="text-black leading-normal">
+        <raw htmlWithLinks={ props.item.data.editedText ?? props.item.data.text ?? "" }/>
+    </p>
+
+    <span if={props.item.data.isAuthor}>
+        <a href="#" onclick={ () => {
+            let editedText = window.prompt("Edit message", props.item.data.editedText ?? props.item.data.text);
+            if (!editedText) {return;} props.controller.editMessage(props.item.node, editedText);
+        }}>✎</a>
+
+        <a href="#" onclick={ () => props.controller.deleteMessage(props.item.node) }>🗑</a>
+    </span>
+
+    <webchat-reactions controller={props.controller} item={props.item}></webchat-reactions>
+</webchat-message>

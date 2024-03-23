@@ -1,0 +1,89 @@
+<webchat-blob>
+    <template if={props.item.data.blobController.tooLarge()}>
+        <div class="italic">
+            <span>File {props.item.data.text ?? ""} too large for web client</span>
+        </div>
+    </template>
+
+    <template if={props.item.data.blobController.isReady()}>
+
+        <a if={props.item.data.blobController.isImg()}
+            href={props.item.data.blobController.getObjectURL()} target="_blank">
+                <img src={props.item.data.blobController.getObjectURL()}
+                    alt={props.item.data.text ?? ""}
+                    style="max-height:240px;"/>
+        </a>
+
+        <div if={!props.item.data.blobController.isImg()}>
+            <a
+                href={props.item.data.blobController.getObjectURL()} target="_blank"
+                style="color:blue;"
+                rel="noopener noreferrer">
+                {props.item.data.text || "Save attachment"}
+            </a> &nbsp;({props.item.data.blobLength} bytes)
+        </div>
+
+    </template>
+
+    <template if={props.item.data.blobController.isDownloading()}>
+        <div class="italic">
+            Downloading to browser: {props.item.data.blobController.getThroughput()}
+        </div>
+
+        <a href="#" onclick={() => props.item.data.blobController.cancelDownload()}
+            style="color:blue;">Cancel download</a>
+    </template>
+
+    <template if={props.item.data.blobController.isSyncing()}>
+        <div class="italic">
+            Syncing from peer(s): {props.item.data.blobController.getThroughput()}
+        </div>
+    </template>
+
+    <template if={props.item.data.blobController.getSyncError()}>
+        <div class="italic">
+            <span>Error syncing from peer(s)</span>
+        </div>
+
+        <div class="italic">
+            &nbsp;
+            <a href="#" onclick={ () => props.item.data.blobController.download() }
+                style="color:blue;"
+                rel="noopener noreferrer">Click to retry download</a>
+        </div>
+    </template>
+
+    <template if={props.item.data.blobController.getDownloadError()}>
+        <div class="italic">
+            <span>Error downloading</span>
+        </div>
+
+        <div class="italic">
+            &nbsp;
+            <a href="#" onclick={ () => props.item.data.blobController.download() }
+                style="color:blue;"
+                rel="noopener noreferrer">Click to retry download</a>
+        </div>
+    </template>
+
+    <template if={props.item.data.blobController.isUploading()}>
+        <div class="italic">
+            Uploading: {props.item.data.blobController.getThroughput()}
+        </div>
+
+        <a href="#" onclick={() => props.item.data.blobController.cancelUpload()}
+            style="color:blue;">Cancel upload</a>
+    </template>
+
+    <template if={props.item.data.blobController.getUploadError()}>
+        <div class="italic">
+            <span>Error uploading</span>
+        </div>
+    </template>
+
+    <span if={props.item.data.isAuthor}>
+        <a href="#" onclick={ () => props.controller.deleteMessage(props.item.node) }>🗑</a>
+    </span>
+
+    <webchat-reactions controller={props.controller} item={props.item}></webchat-reactions>
+</webchat-blob>
