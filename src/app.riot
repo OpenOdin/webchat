@@ -230,8 +230,6 @@
     <script>
         import * as riot from "riot";
 
-        import appJSON from "./app.json";
-
         import WebChatDialogUserInfo from "./webchat-dialog-user-info.riot";
 
         export default {
@@ -297,7 +295,26 @@
 
                     await this.state.openOdin.auth();
 
-                    this.connect();
+                    const jsonpath = "/" + (new URLSearchParams(document.location.search).get("conf") || "app.json");
+
+                    console.debug("Loading JSON conf file:", jsonpath);
+
+                    let appConf;
+
+                    try {
+                        const appJSON = await (await fetch(jsonpath)).json();
+
+                        appConf = this.props.Globals.ParseUtil.ParseApplicationConf(appJSON);
+                    }
+                    catch(e) {
+                        console.error(`Could not load and parse ${jsonpath} JSON config file`, e);
+
+                        alert(`Could not load and parse ${jsonpath} JSON config file`);
+
+                        return;
+                    }
+
+                    this.connect(appConf);
                 }
                 catch(e) {
                     this.update({
@@ -306,12 +323,10 @@
                 }
             },
 
-            async connect() {
+            async connect(appConf) {
                 if (!this.state.openOdin.isAuthed()) {
                     return;
                 }
-
-                const appConf = this.props.Globals.ParseUtil.ParseApplicationConf(appJSON);
 
                 const service = await this.state.openOdin.initService(appConf);
 

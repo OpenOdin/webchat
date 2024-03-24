@@ -5,11 +5,11 @@
     "private": false,
     "scripts": {
         "build": "rm -rf ./dist/* ./build && mkdir -p dist && npm run tsc && npm run build-script && npm run build-app",
-        "release": "rm -rf ./release/* ./build && mkdir -p release && npm run tsc && npm run build-script && npm run build-app-release",
+        "release": "rm -rf ./dist/* ./build && mkdir -p dist && npm run tsc && npm run build-script && npm run build-app-release",
         "tsc": "npx tsc",
         "build-script": "npx browserify --s module -i ./node_modules/openodin/build/src/datastreamer/FileStreamWriter.js -i ./node_modules/openodin/build/src/datastreamer/FileStreamReader.js -i sqlite3 -i postgresql-client ./build/Globals.js -o ./build/Globals-browser.js",
-        "build-app": "npx webpack -c ./webpack.config.js && cp -r ./src/index.html ./src/favicon.ico ./src/gfx ./node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/openodin/build/src/signatureoffloader/signatureOffloader-worker-browser.js ./node_modules/openodin/build/src/storage/crdt/crdt-worker-browser.js ./dist/ && sed -i.bak \"s/Decentralized Messaging/Decentralized Messaging ($(git rev-parse --short HEAD))/\" dist/main.js",
-        "build-app-release": "npx webpack -c ./webpack.config.release.js && cp -r ./src/index.html ./src/favicon.ico ./src/gfx ./node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/openodin/build/src/signatureoffloader/signatureOffloader-worker-browser.js ./node_modules/openodin/build/src/storage/crdt/crdt-worker-browser.js ./release/ && sed -i.bak \"s/Decentralized Messaging/Decentralized Messaging ($(git rev-parse --short HEAD))/\" release/main.js",
+        "build-app": "npx webpack -c ./webpack.config.js && cp -r ./conf-dev/*.json ./src/index.html ./src/favicon.ico ./src/gfx ./node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/openodin/build/src/signatureoffloader/signatureOffloader-worker-browser.js ./node_modules/openodin/build/src/storage/crdt/crdt-worker-browser.js ./dist/ && sed -i.bak \"s/Interoperable Messaging/Interoperable Messaging ($(git rev-parse --short HEAD))/\" dist/main.js",
+        "build-app-release": "npx webpack -c ./webpack.config.release.js && cp -r ./src/index.html ./src/favicon.ico ./src/gfx ./node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/openodin/build/src/signatureoffloader/signatureOffloader-worker-browser.js ./node_modules/openodin/build/src/storage/crdt/crdt-worker-browser.js ./dist/ && sed -i.bak \"s/Interoperable Messaging/Interoperable Messaging ($(git rev-parse --short HEAD))/\" dist/main.js",
         "lint": "npx eslint ./src"
     },
     "repository": {
