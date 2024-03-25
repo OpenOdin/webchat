@@ -18,7 +18,7 @@ To use this webchat you need the [OpenOdin Datawallet browser plugin](httos://gi
 ```sh
 npm i
 npm run build
-serve.sh
+./serve.sh
 ```
 
 The application files are placed in `./dist`.
