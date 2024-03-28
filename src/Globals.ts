@@ -4,7 +4,6 @@
  */
 
 import {
-    ParseUtil,
     OpenOdin,
 } from "openodin";
 
@@ -17,7 +16,6 @@ import {
 
 export default {
     OpenOdin,
-    ParseUtil,
     PresenceController,
     ChannelListController,
     NotificationsController,
