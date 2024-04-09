@@ -14,7 +14,7 @@
                     <div class="h-5">
                     </div>
                     <div class="flex flex-row">
-                        <button class="basis-0 text-green-500 bg-white box-border w-10 h-10 border-2 border-green-500 shadow-lg shadow-green-400" type="button" if={this.state.service && this.state.openOdin.isAuthed()}>
+                        <button class="basis-0 text-green-500 bg-white box-border w-10 h-10 border-2 border-green-500 shadow-lg shadow-green-400" type="button" if={this.state.service}>
                             <div class="w-10 h-10">
                                 <minidenticon-svg
                                     username={this.state.service.getPublicKey().toString("hex")}
@@ -179,7 +179,7 @@
                         <p>Error: {state.error}</p>
                     </div>
 
-                    <div if={!state.openOdin.isActive()}
+                    <div if={!state.openOdin?.isOpen()}
                         style="display: block; background-color: orange;">
                         <h1>
                             Please activate the OpenOdin Data Wallet browser extension
@@ -189,25 +189,36 @@
                         </h1>
                     </div>
 
-                    <button if={state.openOdin.isActive() && !state.openOdin.isAuthed() && !state.openOdin.isPendingAuth()}
-                        type="button" onclick={ auth } style="background-color: yellow">
+                    <button if={state.openOdin?.isOpen() && !state.openOdin?.isAuthed() && !state.openOdin?.isPendingAuth() && !state.openOdin?.isClosed()}
+                        type="button" onclick={ state.openOdin.auth } style="background-color: yellow">
                         Click here to request authorization from the Data Wallet.
                     </button>
 
-                    <div if={state.openOdin.isPendingAuth()}
+                    <div if={state.openOdin?.isPendingAuth()}
                         style="display: block; background-color: green;">
                         <h1>
-                            Now, open the Data Wallet extension to accept or deny the authorization,
+                            Now, use the Data Wallet extension to accept or deny the authorization,
                             by clicking on the
                             <img src="gfx/openodin-logo.svg" class="w-7 h-7 inline-block">
                             icon in your browser toolbar.
                         </h1>
                     </div>
 
-                    <div if={state.openOdin.isAuthed()}
+                    <div if={state.openOdin?.isAuthed()}
                         style="display: block; background-color: white;">
                         <h1>Authorized as {this.state.service.getPublicKey().toString("hex")}</h1>
-                        <button type="button" onclick={close}>Logout</button>
+                        <button type="button" onclick={state.openOdin.close}>Logout</button>
+                    </div>
+
+                    <div if={state.service && !state.service.isRunning() && !state.service.isClosed()}
+                        style="display: block; background-color: white;">
+                        <button type="button" onclick={()=>state.service.start()}>Start Service</button>
+                    </div>
+
+                    <div if={state.openOdin?.isClosed()}
+                        style="display: block; background-color: red;">
+                        <h1>Logged out</h1>
+                        <button type="button" onclick={() => initState(true)}>Restart auth process</button>
                     </div>
                 </div>
 
@@ -251,85 +262,70 @@
                 window.addEventListener("dragover", function(e) { e.preventDefault() });
                 window.addEventListener("drop", function(e) { e.preventDefault() });
 
-                this.resetState();
+                this.initState();
             },
 
-            resetState() {
-                const openOdin = new this.props.Globals.OpenOdin();
+            async initState(doUpdate) {
+                // Note: we are allowing config files to be fetched from any domain and location.
+                //
+                const jsonpath = new URLSearchParams(document.location.search).get("conf") ||
+                    "app.json";
 
-                openOdin.onActive( () => {
+                console.debug("Loading JSON conf file:", jsonpath);
+
+                let appConf;
+
+                try {
+                    appConf = await this.props.Globals.OpenOdin.LoadAppConf(jsonpath);
+                }
+                catch(e) {
+                    console.error(`Could not load or parse ${jsonpath} JSON config file`, e);
+
+                    return;
+                }
+
+                const autoAuth = true;
+                const openOdin = new this.props.Globals.OpenOdin(appConf, autoAuth);
+
+                openOdin.onOpen( () => {
                     this.update();
+                });
+
+                openOdin.onClose( () => {
+                    this.update({
+                        error: "Logged out",
+                    });
+
+                    this.initState(true);
+                });
+
+                openOdin.onPreAuth( (service) => {
+                    this.update();
+                });
+
+                openOdin.onAuth( (service) => {
+                    this.start(service);
+                });
+
+                openOdin.onAuthFail( (error) => {
+                    this.update({
+                        error,
+                    });
                 });
 
                 this.state = {
                     openOdin,
+                    service: undefined,
                     presenceController: undefined,
                     channelListController: undefined,
                 };
-            },
 
-            close() {
-                this.state.openOdin.close();
-
-                this.state.presenceController?.close();
-
-                this.state.channelListController?.close();
-
-                this.state.service.stop();
-
-                this.resetState();
-
-                this.update();
-            },
-
-            async auth() {
-                if (this.state.service) {
-                    return;
-                }
-
-                this.state.error = "";
-
-                try {
-                    // We do this to show updated status about authorization.
-                    setTimeout( () => this.update() );
-
-                    await this.state.openOdin.auth();
-
-                    const jsonpath = "/" + (new URLSearchParams(document.location.search).get("conf") || "app.json");
-
-                    console.debug("Loading JSON conf file:", jsonpath);
-
-                    let appConf;
-
-                    try {
-                        const appJSON = await (await fetch(jsonpath)).json();
-
-                        appConf = this.props.Globals.ParseUtil.ParseApplicationConf(appJSON);
-                    }
-                    catch(e) {
-                        console.error(`Could not load and parse ${jsonpath} JSON config file`, e);
-
-                        alert(`Could not load and parse ${jsonpath} JSON config file`);
-
-                        return;
-                    }
-
-                    this.connect(appConf);
-                }
-                catch(e) {
-                    this.update({
-                        error: e.message,
-                    });
+                if (doUpdate) {
+                    this.update();
                 }
             },
 
-            async connect(appConf) {
-                if (!this.state.openOdin.isAuthed()) {
-                    return;
-                }
-
-                const service = await this.state.openOdin.initService(appConf);
-
+            start(service) {
                 service.onStorageConnect( () => {
                     // TODO: show in the UI that we are "Connected to storage"
                     // When configured for local storage we are always connected, but in case of using
@@ -366,7 +362,7 @@
 
                     p2pClient.onMessagingPong( (roundTripTime) => {
                         // TODO: show this round trip value in the UI instead of in the console.
-                        console.info("Ping/pong round trip time [ms]", roundTripTime);
+                        //console.info("Ping/pong round trip time [ms]", roundTripTime);
                     });
                 });
 
@@ -396,11 +392,22 @@
                     });
                 });
 
-                this.update({
-                    service,
+                service.onStop( () => {
+                    this.state.presenceController?.close();
+                    this.state.channelListController?.close();
+
+                    this.update({
+                        presenceController: undefined,
+                        channelListController: undefined,
+                        service: undefined,
+                    });
                 });
 
                 service.start();
+
+                this.update({
+                    service,
+                });
             },
 
             handleStorageConnect() {
@@ -408,7 +415,8 @@
                     connected: true,
                 });
 
-                this.state.presenceController = new this.props.Globals.PresenceController({}, this.state.service);
+                const presenceTemplate = this.state.service.getThreadTemplates().presence;
+                this.state.presenceController = new this.props.Globals.PresenceController(this.state.service, presenceTemplate);
                 this.state.presenceController.onUpdate(() => this.update()).onClose( () => console.error("Presence thread was closed") );
 
                 this.state.notificationsController = new this.props.Globals.NotificationsController(document.title);
@@ -422,7 +430,9 @@
                 this.state.presenceController.onActive( () => this.state.notificationsController?.focusDetected() );
                 this.state.presenceController.onInactive( () => this.state.notificationsController?.blurDetected() );
 
-                this.state.channelListController = new this.props.Globals.ChannelListController({}, this.state.service);
+                const channelListTemplate = this.state.service.getThreadTemplates().channels;
+                const messageTemplate = this.state.service.getThreadTemplates().channel;
+                this.state.channelListController = new this.props.Globals.ChannelListController(this.state.service, channelListTemplate, messageTemplate);
 
                 this.state.channelListController.onUpdate(() => this.update()).onClose( () => console.error("Channels thread was closed") );
             },

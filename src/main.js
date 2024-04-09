@@ -23,4 +23,4 @@ riot.register("raw", Raw);
 // Need to call minidenticon to activate it.
 minidenticon();
 
-const mountApp = riot.component(App)(document.querySelector("#app"), { Globals });
+riot.component(App)(document.querySelector("#app"), { Globals });
