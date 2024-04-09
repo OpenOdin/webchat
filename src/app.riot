@@ -362,7 +362,7 @@
 
                     p2pClient.onMessagingPong( (roundTripTime) => {
                         // TODO: show this round trip value in the UI instead of in the console.
-                        console.info("Ping/pong round trip time [ms]", roundTripTime);
+                        //console.info("Ping/pong round trip time [ms]", roundTripTime);
                     });
                 });
 
@@ -415,7 +415,8 @@
                     connected: true,
                 });
 
-                this.state.presenceController = new this.props.Globals.PresenceController({}, this.state.service);
+                const presenceTemplate = this.state.service.getThreadTemplates().presence;
+                this.state.presenceController = new this.props.Globals.PresenceController(this.state.service, presenceTemplate);
                 this.state.presenceController.onUpdate(() => this.update()).onClose( () => console.error("Presence thread was closed") );
 
                 this.state.notificationsController = new this.props.Globals.NotificationsController(document.title);
@@ -429,7 +430,9 @@
                 this.state.presenceController.onActive( () => this.state.notificationsController?.focusDetected() );
                 this.state.presenceController.onInactive( () => this.state.notificationsController?.blurDetected() );
 
-                this.state.channelListController = new this.props.Globals.ChannelListController({}, this.state.service);
+                const channelListTemplate = this.state.service.getThreadTemplates().channels;
+                const messageTemplate = this.state.service.getThreadTemplates().channel;
+                this.state.channelListController = new this.props.Globals.ChannelListController(this.state.service, channelListTemplate, messageTemplate);
 
                 this.state.channelListController.onUpdate(() => this.update()).onClose( () => console.error("Channels thread was closed") );
             },

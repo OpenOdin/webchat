@@ -90,15 +90,30 @@
                                 "value": "app/chat/message",
                                 "cmp": "eq"
                             }
-                        ]
+                        ],
+                        "levels": [1],
+                        "limit": 3000
+                    },
+                    {
+                        "nodeType": "00040001",
+                        "filters": [
+                            {
+                                "field": "contentType",
+                                "value": "app/chat/message",
+                                "cmp": "eq"
+                            }
+                        ],
+                        "levels": [2],
+                        "limit": 3000
                     }
                 ],
+                "descending": true,
                 "depth": 2,
                 "preserveTransient": true
             },
             "crdt": {
-                "algo": 2,
-                "tail": 30,
+                "algo": 1,
+                "tail": 1000,
                 "conf": {
                     "annotations": {
                         "format": "messages"

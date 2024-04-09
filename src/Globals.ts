@@ -10,7 +10,6 @@ import {
 import {
     PresenceController,
     ChannelListController,
-    MessageController,
     NotificationsController,
 } from "./controllers";
 
