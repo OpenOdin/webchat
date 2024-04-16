@@ -24,11 +24,15 @@
                         </button>
                         <div class="basis-4/5 -px-8 ml-2">
                             <div class="flex flex-col font-bold">
-                                <div class="text-underrubriker text-base opacity-80">
-                                    { state.name }
+                                <div if={state.storageConnected}class="text-underrubriker text-base opacity-80">
+                                    Connected to storage
                                 </div>
-                                <div class="w-40 text-underrubriker text-sm font-light italic opacity-80 truncate overflow-hidden text-ellipsis">
-                                    { state.bio }
+                                <div if={!state.storageConnected}class="text-underrubriker text-base opacity-80">
+                                    Not connected to storage
+                                </div>
+
+                                <div class="text-underrubriker text-base opacity-80">
+                                    Syncing with {state.connectedPeers} peer(s)
                                 </div>
                             </div>
                         </div>
@@ -50,36 +54,36 @@
                     </div>
                 </div>
 
-                <div each={ publicKey in (state.presenceController?.getActiveList() ?? []) } class="flex items-center mb-3 px-4">
+                <div each={ presence in (state.presenceController?.getActiveList() ?? []) } class="flex items-center mb-3 px-4">
                     <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
                         style="width: 22px">
                         <circle cx="10" cy="10" r="10">
                     </svg>
 
                     <span class="text-rubriker opacity-75"
-                        id="presence_{publicKey.toString("hex")}"
+                        id="presence_{presence.publicKey.toString("hex")}"
                         onclick={showUserInfo}
                         style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {publicKey.toString("hex")}
+                        {presence.displayName}
                     </span>
-                    <span if={publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
+                    <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
                         (you)
                     </span>
                 </div>
 
-                <div each={ publicKey in (state.presenceController?.getInactiveList() ?? []) } class="flex items-center mb-3 px-4">
+                <div each={ presence in (state.presenceController?.getInactiveList() ?? []) } class="flex items-center mb-3 px-4">
                     <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
                         style="width: 22px">
                         <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
                     </svg>
 
                     <span class="text-rubriker opacity-75"
-                        id="presence_{publicKey.toString("hex")}"
+                        id="presence_{presence.publicKey.toString("hex")}"
                         onclick={showUserInfo}
                         style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {publicKey.toString("hex")}
+                        {presence.publicKey.toString("hex")}
                     </span>
-                    <span if={publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
+                    <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
                         (you)
                     </span>
                 </div>
@@ -179,7 +183,7 @@
                         <p>Error: {state.error}</p>
                     </div>
 
-                    <div if={!state.openOdin?.isOpen()}
+                    <div if={!state.openOdin?.isOpened()}
                         style="display: block; background-color: orange;">
                         <h1>
                             Please activate the OpenOdin Data Wallet browser extension
@@ -189,7 +193,7 @@
                         </h1>
                     </div>
 
-                    <button if={state.openOdin?.isOpen() && !state.openOdin?.isAuthed() && !state.openOdin?.isPendingAuth() && !state.openOdin?.isClosed()}
+                    <button if={state.openOdin?.isOpened() && !state.openOdin?.isAuthed() && !state.openOdin?.isPendingAuth() && !state.openOdin?.isClosed()}
                         type="button" onclick={ state.openOdin.auth } style="background-color: yellow">
                         Click here to request authorization from the Data Wallet.
                     </button>
@@ -266,6 +270,17 @@
             },
 
             async initState(doUpdate) {
+                // The state model
+                //
+                this.state = {
+                    openOdin: undefined,
+                    service: undefined,
+                    presenceController: undefined,
+                    channelListController: undefined,
+                    storageConnected: false,
+                    connectedPeers: 0,
+                };
+
                 // Note: we are allowing config files to be fetched from any domain and location.
                 //
                 const jsonpath = new URLSearchParams(document.location.search).get("conf") ||
@@ -313,12 +328,7 @@
                     });
                 });
 
-                this.state = {
-                    openOdin,
-                    service: undefined,
-                    presenceController: undefined,
-                    channelListController: undefined,
-                };
+                this.state = {...this.state, openOdin};
 
                 if (doUpdate) {
                     this.update();
@@ -327,18 +337,12 @@
 
             start(service) {
                 service.onStorageConnect( () => {
-                    // TODO: show in the UI that we are "Connected to storage"
-                    // When configured for local storage we are always connected, but in case of using
-                    // a remote storage over websocket it will make sense showing the status.
-
                     console.info("Connected to storage");
+
                     this.handleStorageConnect();
                 });
 
                 service.onStorageClose( () => {
-                    // TODO: show in UI "not connected to storage".
-                    //
-
                     console.error("Disconnected from storage");
 
                     this.handleStorageClose();
@@ -350,8 +354,7 @@
 
 
                 service.onPeerConnect( (p2pClient) => {
-                    // TODO: keep count of connected peers and show in the UI as "Connected to # peer(s)".
-                    //
+                    this.state.connectedPeers++;
 
                     const pubKey = p2pClient.getRemotePublicKey();
                     console.info(`Peer connected: ${pubKey.toString("hex")}`);
@@ -364,14 +367,17 @@
                         // TODO: show this round trip value in the UI instead of in the console.
                         //console.info("Ping/pong round trip time [ms]", roundTripTime);
                     });
+
+                    this.update();
                 });
 
                 service.onPeerClose( (p2pClient) => {
-                    // TODO: decrease count of connected peers and update UI.
-                    //
+                    this.state.connectedPeers--;
 
                     const pubKey = p2pClient.getRemotePublicKey();
                     console.info(`Peer disconnected: ${pubKey.toString("hex")}`);
+
+                    this.update();
                 });
 
                 service.onPeerAuthCertError( (error, authCert) => {
@@ -412,7 +418,7 @@
 
             handleStorageConnect() {
                 this.update({
-                    connected: true,
+                    storageConnected: true,
                 });
 
                 const presenceTemplate = this.state.service.getThreadTemplates().presence;
@@ -439,7 +445,7 @@
 
             handleStorageClose() {
                 this.update({
-                    connected: false,
+                    storageConnected: false,
                 });
             },
 

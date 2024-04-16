@@ -44,7 +44,7 @@ export class MessageController extends ThreadController {
     protected channelNode: DataInterface;
 
     /** The limit of messages initially synced from the server. */
-    protected limit: number = 100;
+    protected limit: number = 10;
 
     /** License targets. */
     private targets: Buffer[] = [];
