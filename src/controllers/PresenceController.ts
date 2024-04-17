@@ -200,7 +200,7 @@ export class PresenceController extends ThreadController {
             }
         }
 
-        // Sort of public key
+        // Sort on public key
         //
         this.state.activeList.sort( (a, b) => a.publicKey.compare(b.publicKey) );
 

@@ -323,6 +323,8 @@
                 });
 
                 openOdin.onAuthFail( (error) => {
+                    console.error(error);
+
                     this.update({
                         error,
                     });
