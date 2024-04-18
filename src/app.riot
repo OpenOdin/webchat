@@ -54,38 +54,40 @@
                     </div>
                 </div>
 
-                <div each={ presence in (state.presenceController?.getActiveList() ?? []) } class="flex items-center mb-3 px-4">
-                    <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
-                        style="width: 22px">
-                        <circle cx="10" cy="10" r="10">
-                    </svg>
+                <div style="min-height: 100px; max-height: 200px; overflow-y: scroll; scrollbar-width: none;">
+                    <div each={ presence in (state.presenceController?.getActiveList() ?? []) } class="flex items-center mb-3 px-4">
+                        <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
+                            style="width: 22px">
+                            <circle cx="10" cy="10" r="10">
+                        </svg>
 
-                    <span class="text-rubriker opacity-75"
-                        id="presence_{presence.publicKey.toString("hex")}"
-                        onclick={showUserInfo}
-                        style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {presence.displayName}
-                    </span>
-                    <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
-                        (you)
-                    </span>
-                </div>
+                        <span class="text-rubriker opacity-75"
+                            id="presence_{presence.publicKey.toString("hex")}"
+                            onclick={showUserInfo}
+                            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {presence.displayName}
+                        </span>
+                        <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
+                            (you)
+                        </span>
+                    </div>
 
-                <div each={ presence in (state.presenceController?.getInactiveList() ?? []) } class="flex items-center mb-3 px-4">
-                    <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
-                        style="width: 22px">
-                        <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
-                    </svg>
+                    <div each={ presence in (state.presenceController?.getInactiveList() ?? []) } class="flex items-center mb-3 px-4">
+                        <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
+                            style="width: 22px">
+                            <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
+                        </svg>
 
-                    <span class="text-rubriker opacity-75"
-                        id="presence_{presence.publicKey.toString("hex")}"
-                        onclick={showUserInfo}
-                        style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {presence.publicKey.toString("hex")}
-                    </span>
-                    <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
-                        (you)
-                    </span>
+                        <span class="text-rubriker opacity-75"
+                            id="presence_{presence.publicKey.toString("hex")}"
+                            onclick={showUserInfo}
+                            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {presence.publicKey.toString("hex")}
+                        </span>
+                        <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
+                            (you)
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -102,11 +104,13 @@
                         </a>
                     </div>
                 </div>
-                <div class="py-1 px-4 bg-lankar text-rubriker">
-                    # SC2
-                </div>
-                <div class="py-1 px-4 text-rubriker">
-                    # Random
+                <div style="min-height: 100px; max-height: 200px; overflow-y: scroll; scrollbar-width: none;">
+                    <div class="py-1 px-4 bg-lankar text-rubriker">
+                        # SC2
+                    </div>
+                    <div class="py-1 px-4 text-rubriker">
+                        # Random
+                    </div>
                 </div>
             </div>
 
@@ -122,54 +126,56 @@
                     </div>
                 </div>
 
-                <div each={item in state.channelListController?.getItems()}
-                    if={item.data.isPrivate}
-                    id="channel_{item.id1.toString("hex")}"
-                    onclick={ () => this.openChannel(item.id1)}
-                    class="flex items-center mb-3 px-4">
+                <div style="min-height: 100px; overflow-y: scroll; scrollbar-width: none;">
+                    <div each={item in state.channelListController?.getItems()}
+                        if={item.data.isPrivate}
+                        id="channel_{item.id1.toString("hex")}"
+                        onclick={ () => this.openChannel(item.id1)}
+                        class="flex items-center mb-3 px-4">
 
 
-                    <template if={item.data.controller}>
-                        <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
-                            if={state.presenceController?.isPresent(item.data.name) &&
-                                !state.channelListController.hasNotification(item.id1) }>
-                            <circle cx="10" cy="10" r="10">
-                        </svg>
+                        <template if={item.data.controller}>
+                            <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
+                                if={state.presenceController?.isPresent(item.data.name) &&
+                                    !state.channelListController.hasNotification(item.id1) }>
+                                <circle cx="10" cy="10" r="10">
+                            </svg>
 
-                        <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
-                            if={!state.presenceController?.isPresent(item.data.name) &&
-                                !state.channelListController.hasNotification(item.id1) }>
-                            style="width: 22px">
-                            <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
-                        </svg>
+                            <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
+                                if={!state.presenceController?.isPresent(item.data.name) &&
+                                    !state.channelListController.hasNotification(item.id1) }>
+                                style="width: 22px">
+                                <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
+                            </svg>
 
-                        <svg class="h-2 w-2 mr-2 fill-current text-red-500" viewBox="0 0 20 20"
-                            if={state.channelListController.hasNotification(item.id1)}>
-                            <circle cx="10" cy="10" r="10">
-                        </svg>
+                            <svg class="h-2 w-2 mr-2 fill-current text-red-500" viewBox="0 0 20 20"
+                                if={state.channelListController.hasNotification(item.id1)}>
+                                <circle cx="10" cy="10" r="10">
+                            </svg>
 
-                        <span class="text-rubriker opacity-75 {item.data.isActive ? "font-bold" : ""} text-ellipsis overflow-hidden">
-                            {item.data.name}
-                        </span>
-                    </template>
+                            <span class="text-rubriker opacity-75 {item.data.isActive ? "font-bold" : ""} text-ellipsis overflow-hidden">
+                                {item.data.name}
+                            </span>
+                        </template>
 
-                    <template if={!item.data.controller}>
-                        <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
-                            if={state.presenceController?.isPresent(item.data.name)}>
-                            <circle cx="10" cy="10" r="10">
-                        </svg>
+                        <template if={!item.data.controller}>
+                            <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
+                                if={state.presenceController?.isPresent(item.data.name)}>
+                                <circle cx="10" cy="10" r="10">
+                            </svg>
 
-                        <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
-                            if={!state.presenceController?.isPresent(item.data.name)}
-                            style="width: 22px">
-                            <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
-                        </svg>
+                            <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
+                                if={!state.presenceController?.isPresent(item.data.name)}
+                                style="width: 22px">
+                                <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
+                            </svg>
 
-                        <span title="Notifications are not shown for unopened channels. Click to open channel."
-                            class="text-rubriker opacity-75 text-ellipsis overflow-hidden italic">
-                            {item.data.name}
-                        </span>
-                    </template>
+                            <span title="Notifications are not shown for unopened channels. Click to open channel."
+                                class="text-rubriker opacity-75 text-ellipsis overflow-hidden italic">
+                                {item.data.name}
+                            </span>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
