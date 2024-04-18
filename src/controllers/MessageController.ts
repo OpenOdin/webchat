@@ -77,7 +77,15 @@ export class MessageController extends ThreadController {
             // TODO: what kind of permmissions do we want?
         }
 
-        this.onChange( () => this.update() );
+        this.onChange( (...args: any[]) => {
+            const appended = args[3];
+
+            if (appended.length > 0) {
+                this.notify();
+            }
+
+            this.update();
+        });
 
         this.addAutoSync();
     }
