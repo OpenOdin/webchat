@@ -1,16 +1,12 @@
 <webchat-message>
     <p class="text-black leading-normal">
-        <raw htmlWithLinks={ props.item.data.editedText ?? props.item.data.text ?? "" }/>
+        <raw class="emojitext" style="word-break: break-all;" htmlWithLinks={ props.item.data.editedText ?? props.item.data.text ?? "" }/>
+        <span if={props.item.data.editedText}>&nbsp<i style="font-size: 0.8em;">(edited)</i></span>
     </p>
 
-    <span if={props.item.data.isAuthor}>
-        <a href="#" onclick={ () => {
-            let editedText = window.prompt("Edit message", props.item.data.editedText ?? props.item.data.text);
-            if (!editedText) {return;} props.controller.editMessage(props.item.node, editedText);
-        }}>✎</a>
-
-        <a href="#" onclick={ () => props.controller.deleteMessage(props.item.node) }>🗑</a>
-    </span>
-
-    <webchat-reactions controller={props.controller} item={props.item}></webchat-reactions>
+    <style>
+        .emojitext {
+            font-family: "Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif;
+        }
+    </style>
 </webchat-message>

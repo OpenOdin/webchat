@@ -1,17 +1,60 @@
 <webchat-reactions>
-    <span><a href="#" onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, "thumbsup") }>{this.reactionsEmojis["thumbsup"] ?? "?"}</a></span>
+    <div if={props.showMenu} class="reaction-menu">
+        <img class="reaction-btn w-4 h-4" src="gfx/icons8-plus-24.png" />
 
-    <p each={reaction in (props.item.data.reactions.list ?? [])}>
-        <a href="#"
-        class=" {reaction.hasReacted ? "bg-blue-500" : ""} "
-        onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, reaction.name)}>{this.reactionsEmojis["thumbsup"] ?? "?"}({reaction.count})</a>
-    </p>
+        <div class="reaction-content">
+            <a href="#"
+                onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, "thumbsup") }>
+                <img class="w-5 h-5 inline-block" src={this.reactionsEmojis["thumbsup"]} />
+            </a>
+
+            <a href="#"
+                onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, "astrochicken") }>
+                <img class="w-5 h-5 inline-block" src={this.reactionsEmojis["astrochicken"]} />
+            </a>
+        </div>
+    </div>
+
+    <div if={props.showReactions}>
+        <span each={reaction in (props.item.data.reactions?.list ?? [])}>
+            <a if={this.reactionsEmojis[reaction.name]}
+                href="#"
+                onclick={ () => props.controller.toggleReaction(props.item.data, props.item.node, reaction.name)}>
+                <img class="w-5 h-5 inline-block" style="padding-bottom: 2px;"
+                    src={this.reactionsEmojis[reaction.name]} />
+                <span class="{reaction.hasReacted ? "bg-slate-300" : ""} ">({reaction.count})</span>
+            </a>
+        </span>
+    </div>
 
     <script>
         export default {
             reactionsEmojis: {
-                "thumbsup": "👍",
+                "thumbsup":"gfx/icons8-like-24.png", //icons credits: https://icons8.com/
+                "astrochicken":"gfx/astrochicken-icon.png", // credits Space Quest III
             },
         }
     </script>
+    <style>
+        .reaction-menu {
+            position: relative;
+            display: inline-block;
+            width: 100px;
+        }
+        .reaction-btn {
+            display: inline-block;
+        }
+        .reaction-content {
+            display: none;
+            position: absolute;
+            background-color: #f1f1f1;
+            min-width: 20px;
+            min-height: 20px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .reaction-menu:hover .reaction-content {
+            display: inline-block;
+        }
+    </style>
 </webchat-reactions>
