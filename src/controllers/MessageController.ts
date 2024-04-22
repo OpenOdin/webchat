@@ -102,6 +102,21 @@ export class MessageController extends ThreadController {
         return (channelNode.getRefId()?.length ?? 0) > 0;
     }
 
+    public isPrivateChannel(): boolean {
+        return MessageController.IsPrivateChannel(this.channelNode);
+    }
+
+    /**
+     * @returns true if publicKey is either owner or refId, or both in case of user.
+     */
+    public peerOf(publicKey: Buffer): boolean {
+        if (this.service.getPublicKey().equals(publicKey)) {
+            return (this.channelNode.getOwner()?.equals(publicKey) && this.channelNode.getRefId()?.equals(publicKey)) ?? false;
+        }
+
+        return (this.channelNode.getOwner()?.equals(publicKey) || this.channelNode.getRefId()?.equals(publicKey)) ?? false;
+    }
+
     /**
      * Get the name of the channel.
      * If the channel is private the name is the public key of the other peer.
@@ -112,6 +127,12 @@ export class MessageController extends ThreadController {
      */
     public static GetName(channelNode: DataInterface, publicKey: Buffer): string {
         if (MessageController.IsPrivateChannel(channelNode)) {
+            const name = channelNode.getData()?.toString();
+
+            if (name) {
+                return name;
+            }
+
             if (channelNode.getRefId()?.equals(publicKey)) {
                 return channelNode.getOwner()!.toString("hex");
             }
