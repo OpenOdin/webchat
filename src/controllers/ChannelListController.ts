@@ -139,7 +139,7 @@ export class ChannelListController extends ThreadController {
      * @returns the controller of the channel which is active, if any.
      */
     public getActiveController(): MessageController | undefined {
-        // TODO: keep indexed for quicker retrievel
+        // TODO: keep indexed for quicker retrieval
         //
         const items = this.getItems();
 
