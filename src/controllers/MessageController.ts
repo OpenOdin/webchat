@@ -362,4 +362,46 @@ export class MessageController extends ThreadController {
 
         message.blobController.upload(file);
     }
+
+    public saveHistory() {
+        // Prepare data
+        let data = "";
+
+        // Add information disclaimer
+        data += "Information notice: this file potentially contains internal, sensitive, restricted and/or confidential information\n";
+
+        // Add license information
+        data += "License(s): " + "UNKNOWN" + "\n";
+
+        // Add ruler
+        data += "==================================================================================================================\n";
+
+        const items = this.getItems();
+        for(let i=0; i<items.length; i++) {
+            const itemData = items[i].data;
+            data += itemData.publicKey + "\n";
+            data += itemData.creationTimestamp + "\n";
+            data += (itemData.editedText ?? itemData.text) + "\n";
+            data += "\n";
+        }
+
+        const filename = "webchat_" + this.getName() + "_" + (new Date().toISOString().split('T')[0]) + ".txt";
+
+        // Create new resource with data contents
+        const file = new File([data], filename, {
+            type: "text/plain"
+        });
+
+        // Create temporary link element
+        const anchorElement = document.createElement("a");
+        anchorElement.setAttribute("style", "display: hidden");
+        document.body.appendChild(anchorElement);
+        anchorElement.href = URL.createObjectURL(file);
+        anchorElement.download = filename;
+
+        // Trigger download and cleanup resources
+        anchorElement.click();
+        URL.revokeObjectURL(anchorElement.href);
+        anchorElement.remove();
+    }
 }
