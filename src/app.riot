@@ -21,7 +21,7 @@
                                     username={this.state.service.getPublicKey().toString("hex")}
                                     saturation="60" lightness="50">
                                 </minidenticon-svg>
-                                <button type="button" onclick={state.openOdin.close}>Logout</button>
+                                <button type="button" onclick={state.openOdin.close} class="text-xs">Logout</button>
                             </div>
                         </button>
                         <div class="basis-4/5 -px-8 ml-2">
@@ -59,7 +59,7 @@
                 <div style="min-height: 100px; max-height: 50%; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #0ac507 #484848;">
                     <div each={ presence in (state.presenceController?.getList() ?? []) }
                         class={"flex items-center mb-3 px-4 " + (state.channelListController.peerOfActive(presence.publicKey) ? "activeUser" : "") }>
-                        <div class="presence-menu w-10 h-10">
+                        <div class="presence-menu w-5 h-5">
                             <minidenticon-svg
                                 username={presence.publicKey.toString("hex")}
                                 saturation="60" lightness="50">
@@ -73,33 +73,33 @@
                             <svg if={getVariable()=="green"}
                                 class="h-2 w-2 mr-2 fill-current text-green-500"
                                 viewBox="0 0 20 20"
-                                style="width: 22px; position: relative; left:13px; bottom:10px;">
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
                                 <circle cx="10" cy="10" r="10">
                             </svg>
 
                             <svg if={getVariable()=="hollow"}
                                 class="h-2 w-2 mr-2 stroke-current text-gray-400"
                                 viewBox="0 0 20 20"
-                                style="width: 22px; position: relative; left:13px; bottom:10px;">
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
                                 <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
                             </svg>
 
                             <svg if={getVariable()=="red"}
                                 class="h-2 w-2 mr-2 fill-current text-red-500"
                                 viewBox="0 0 20 20"
-                                style="width: 22px; position: relative; left:13px; bottom:10px;">
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
                                 <circle cx="10" cy="10" r="10">
                             </svg>
 
                             <svg if={getVariable()=="hollow-red"}
                                 class="h-2 w-2 mr-2 text-red-500 stroke-current"
                                 viewBox="0 0 20 20"
-                                style="width: 22px; position: relative; left:13px; bottom:10px;">
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
                                 <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
                             </svg>
 
                             <div class="presence-content border-2 border-blue-100 shadow-lg">
-                                <div class="w-10 h-10 rounded mr-3">
+                                <div class="w-5 h-5 rounded mr-3">
                                     <minidenticon-svg
                                         username={presence.publicKey.toString("hex")}
                                         saturation="60" lightness="50">
@@ -125,7 +125,7 @@
                             </div>
                         </div>
 
-                        <span class="text-rubriker opacity-75"
+                        <span class="text-rubriker opacity-75 px-3"
                             id="presence_{presence.publicKey.toString("hex")}"
                             onclick={ (e) => {
                                 const defaultChannel = state.channelListController.
@@ -151,7 +151,7 @@
             <div class="mb-8">
                 <div class="px-4 mb-2 text-rubriker flex justify-between items-center">
                     <div class="opacity-75">
-                        Channels
+                        Public channels
                     </div>
                     <div>
                         <a onclick={newChannel}>
@@ -162,6 +162,11 @@
                     </div>
                 </div>
                 <div style="min-height: 100px; max-height: 50%; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #0ac507 #484848;">
+                    <div if={state.channelListController?.getChannels().length <= 0}
+                        class="py-1 px-4 text-rubriker italic">
+                        None available at the moment
+                    </div>
+
                     <div each={channel in state.channelListController?.getChannels()}
                         class="py-1 px-4 bg-lankar text-rubriker">
                         # {channel.name}
@@ -287,7 +292,8 @@
                         </div>
 
                         <button title="Save visible history to file"
-                            onclick={()=>state.channelListController.getActiveController().saveHistory()}>
+                            onclick={()=>state.channelListController.getActiveController().saveHistory()}
+                            class="border-2 border-lankar bg-lankar">
                             Save history
                         </button>
                     </div>
