@@ -56,7 +56,7 @@
                     </div>
                 </div>
 
-                <div style="min-height: 100px; max-height: 50%; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #0ac507 #484848;">
+                <div style="min-height: 100px; max-height: 300px; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #0ac507 #484848;">
                     <div each={ presence in (state.presenceController?.getList() ?? []) }
                         class={"flex items-center mb-3 px-4 " + (state.channelListController.peerOfActive(presence.publicKey) ? "activeUser" : "") }>
                         <div class="presence-menu w-5 h-5">
@@ -588,6 +588,7 @@
             min-height: 60px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
             z-index: 1;
+            margin-top: -8px;
         }
         .presence-menu:hover .presence-content {
             display: inline-block;
