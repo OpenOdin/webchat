@@ -102,6 +102,21 @@ export class MessageController extends ThreadController {
         return (channelNode.getRefId()?.length ?? 0) > 0;
     }
 
+    public isPrivateChannel(): boolean {
+        return MessageController.IsPrivateChannel(this.channelNode);
+    }
+
+    /**
+     * @returns true if publicKey is either owner or refId, or both in case of user.
+     */
+    public peerOf(publicKey: Buffer): boolean {
+        if (this.service.getPublicKey().equals(publicKey)) {
+            return (this.channelNode.getOwner()?.equals(publicKey) && this.channelNode.getRefId()?.equals(publicKey)) ?? false;
+        }
+
+        return (this.channelNode.getOwner()?.equals(publicKey) || this.channelNode.getRefId()?.equals(publicKey)) ?? false;
+    }
+
     /**
      * Get the name of the channel.
      * If the channel is private the name is the public key of the other peer.
@@ -112,6 +127,12 @@ export class MessageController extends ThreadController {
      */
     public static GetName(channelNode: DataInterface, publicKey: Buffer): string {
         if (MessageController.IsPrivateChannel(channelNode)) {
+            const name = channelNode.getData()?.toString();
+
+            if (name) {
+                return name;
+            }
+
             if (channelNode.getRefId()?.equals(publicKey)) {
                 return channelNode.getOwner()!.toString("hex");
             }
@@ -361,5 +382,47 @@ export class MessageController extends ThreadController {
         message.blobController.onUpdate( () => this.update() );
 
         message.blobController.upload(file);
+    }
+
+    public saveHistory() {
+        // Prepare data
+        let data = "";
+
+        // Add information disclaimer
+        data += "Information notice: this file potentially contains internal, sensitive, restricted and/or confidential information\n";
+
+        // Add license information
+        data += "License(s): " + "UNKNOWN" + "\n";
+
+        // Add ruler
+        data += "==================================================================================================================\n";
+
+        const items = this.getItems();
+        for(let i=0; i<items.length; i++) {
+            const itemData = items[i].data;
+            data += itemData.publicKey + "\n";
+            data += itemData.creationTimestamp + "\n";
+            data += (itemData.editedText ?? itemData.text) + "\n";
+            data += "\n";
+        }
+
+        const filename = "webchat_" + this.getName() + "_" + (new Date().toISOString().split('T')[0]) + ".txt";
+
+        // Create new resource with data contents
+        const file = new File([data], filename, {
+            type: "text/plain"
+        });
+
+        // Create temporary link element
+        const anchorElement = document.createElement("a");
+        anchorElement.setAttribute("style", "display: hidden");
+        document.body.appendChild(anchorElement);
+        anchorElement.href = URL.createObjectURL(file);
+        anchorElement.download = filename;
+
+        // Trigger download and cleanup resources
+        anchorElement.click();
+        URL.revokeObjectURL(anchorElement.href);
+        anchorElement.remove();
     }
 }

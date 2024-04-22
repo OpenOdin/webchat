@@ -1,14 +1,11 @@
 <webchat-channel>
     <!-- Messages -->
     <div id="messagesList_{props.item.id1.toString("hex")}" class="px-6 py-4 flex-1 overflow-y-scroll">
-        <div class="flex items-start mb-4 text-base">
-            <button class="border-r-2 border-gray-4 text-blue-600"
-                onclick={()=>this.export()}>Export messages
-            </button>
-        </div>
-        <div class="flex items-start mb-4 text-base">
-            <button class="border-r-2 border-gray-4 text-blue-600"
-                onclick={()=>this.props.controller.loadHistory()}>Load more
+        <div class="items-start mb-4 text-base text-center">
+            <button class="loadmore-btn"
+                onclick={()=>this.props.controller.loadHistory()}>
+                <img title="Load more messages" src="gfx/icons8-load-24.png" />
+                <!-- icons credits: https://icons8.com/ -->
             </button>
         </div>
 
@@ -226,46 +223,14 @@
                 fileElement.value = "";
                 fileElementRemove.classList.add("hidden");
             },
-
-            export(event) {
-                // Prepare data
-                let data = "";
-
-                // Add information disclaimer
-                data += "Information notice: this file potentially contains internal, sensitive, restricted and/or confidential information\n";
-
-                // Add license information
-                data += "License(s): " + "UNKNOWN" + "\n";
-
-                // Add ruler
-                data += "==================================================================================================================\n";
-
-                const items = this.props.controller.getItems();
-                for(let i=0; i<items.length; i++) {
-                    const itemData = items[i].data;
-                    data += itemData.publicKey + "\n";
-                    data += itemData.creationTimestamp + "\n";
-                    data += (itemData.editedText ?? itemData.text) + "\n";
-                    data += "\n";
-                }
-
-                // Create new resource with data contents
-                const file = new File([data], {
-                    type: "text/plain"
-                });
-
-                // Create temporary link element
-                const anchorElement = document.createElement("a");
-                anchorElement.style = "hidden";
-                document.body.appendChild(anchorElement);
-                anchorElement.href = URL.createObjectURL(file);
-                anchorElement.download = "webchat_" + this.props.controller.getName().name + "_" + (new Date().toISOString().split('T')[0]) + ".txt";
-
-                // Trigger download and cleanup resources
-                anchorElement.click();
-                URL.revokeObjectURL(anchorElement.href);
-                anchorElement.remove();
-            }
         }
     </script>
+    <style>
+        .loadmore-btn {
+            opacity: 0.75;
+        }
+        .loadmore-btn:active {
+            opacity: 0.25;
+        }
+    </style>
 </webchat-channel>

@@ -1,12 +1,6 @@
 <webchat-message>
     <p class="text-black leading-normal">
-        <raw class="emojitext" style="word-break: break-all;" htmlWithLinks={ props.item.data.editedText ?? props.item.data.text ?? "" }/>
+        <raw style="word-break: break-all;" htmlWithLinks={ props.item.data.editedText ?? props.item.data.text ?? "" }/>
         <span if={props.item.data.editedText}>&nbsp<i style="font-size: 0.8em;">(edited)</i></span>
     </p>
-
-    <style>
-        .emojitext {
-            font-family: "Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "EmojiOne Color", "Android Emoji", sans-serif;
-        }
-    </style>
 </webchat-message>

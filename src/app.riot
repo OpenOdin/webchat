@@ -14,12 +14,14 @@
                     <div class="h-5">
                     </div>
                     <div class="flex flex-row">
-                        <button class="basis-0 text-green-500 bg-white box-border w-10 h-10 border-2 border-green-500 shadow-lg shadow-green-400" type="button" if={this.state.service}>
-                            <div class="w-10 h-10">
+                        <button class="basis-0 text-green-500 bg-white box-border w-10 h-10 border-2 border-green-500 shadow-lg shadow-green-400" type="button" if={this.state.openOdin?.isAuthed()}>
+                            <div class="w-10 h-10"
+                                title={this.state.service.getPublicKey().toString("hex")}>
                                 <minidenticon-svg
                                     username={this.state.service.getPublicKey().toString("hex")}
                                     saturation="60" lightness="50">
                                 </minidenticon-svg>
+                                <button type="button" onclick={state.openOdin.close} class="text-xs">Logout</button>
                             </div>
                         </button>
                         <div class="basis-4/5 -px-8 ml-2">
@@ -54,35 +56,90 @@
                     </div>
                 </div>
 
-                <div style="min-height: 100px; max-height: 200px; overflow-y: scroll; scrollbar-width: thin;">
-                    <div each={ presence in (state.presenceController?.getActiveList() ?? []) } class="flex items-center mb-3 px-4">
-                        <svg class="h-2 w-2 mr-2 fill-current text-green-500" viewBox="0 0 20 20"
-                            style="width: 22px">
-                            <circle cx="10" cy="10" r="10">
-                        </svg>
+                <div style="min-height: 100px; max-height: 50%; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #0ac507 #484848;">
+                    <div each={ presence in (state.presenceController?.getList() ?? []) }
+                        class={"flex items-center mb-3 px-4 " + (state.channelListController.peerOfActive(presence.publicKey) ? "activeUser" : "") }>
+                        <div class="presence-menu w-5 h-5">
+                            <minidenticon-svg
+                                username={presence.publicKey.toString("hex")}
+                                saturation="60" lightness="50">
+                            </minidenticon-svg>
 
-                        <span class="text-rubriker opacity-75"
+{
+    setVariable(state.channelListController.hasUserNotification(presence.publicKey) ? (presence.isActive ? "red" : "hollow-red") : (presence.isActive ? "green" : "hollow"))
+
+}
+
+                            <svg if={getVariable()=="green"}
+                                class="h-2 w-2 mr-2 fill-current text-green-500"
+                                viewBox="0 0 20 20"
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
+                                <circle cx="10" cy="10" r="10">
+                            </svg>
+
+                            <svg if={getVariable()=="hollow"}
+                                class="h-2 w-2 mr-2 stroke-current text-gray-400"
+                                viewBox="0 0 20 20"
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
+                                <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
+                            </svg>
+
+                            <svg if={getVariable()=="red"}
+                                class="h-2 w-2 mr-2 fill-current text-red-500"
+                                viewBox="0 0 20 20"
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
+                                <circle cx="10" cy="10" r="10">
+                            </svg>
+
+                            <svg if={getVariable()=="hollow-red"}
+                                class="h-2 w-2 mr-2 text-red-500 stroke-current"
+                                viewBox="0 0 20 20"
+                                style="width: 22px; position: relative; left:13px; bottom:12px;">
+                                <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
+                            </svg>
+
+                            <div class="presence-content border-2 border-blue-100 shadow-lg">
+                                <div class="w-5 h-5 rounded mr-3">
+                                    <minidenticon-svg
+                                        username={presence.publicKey.toString("hex")}
+                                        saturation="60" lightness="50">
+                                    </minidenticon-svg>
+                                </div>
+
+                                <div>
+                                    <div each={channel in state.channelListController.getPrivateChannels(presence.publicKey)}>
+                                        <a class="{state.channelListController.hasNotification(channel.id1) ? "bg-red-400" : ""}
+                                            "href="#"
+                                            onclick={ () => this.openChannel(channel.id1)}>
+                                            {channel.name || "<no name>"}
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="opacity-75"
+                                    id="presencenewchannel_{presence.publicKey.toString("hex")}"
+                                    onclick={showUserInfo}
+                                    style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    New private channel
+                                </div>
+                            </div>
+                        </div>
+
+                        <span class="text-rubriker opacity-75 px-3"
                             id="presence_{presence.publicKey.toString("hex")}"
-                            onclick={showUserInfo}
+                            onclick={ (e) => {
+                                const defaultChannel = state.channelListController.
+                                    getPrivateChannels(presence.publicKey)[0];
+
+                                if (defaultChannel) {
+                                    this.openChannel(defaultChannel.id1)
+                                }
+                                else {
+                                    showUserInfo(e);
+                                }
+                            }}
                             style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                             {presence.displayName}
-                        </span>
-                        <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
-                            (you)
-                        </span>
-                    </div>
-
-                    <div each={ presence in (state.presenceController?.getInactiveList() ?? []) } class="flex items-center mb-3 px-4">
-                        <svg class="h-2 w-2 stroke-current text-rubriker mr-2" viewBox="0 0 22 22"
-                            style="width: 22px">
-                            <circle cx="10" cy="10" r="10" fill="none" stroke-width="3">
-                        </svg>
-
-                        <span class="text-rubriker opacity-75"
-                            id="presence_{presence.publicKey.toString("hex")}"
-                            onclick={showUserInfo}
-                            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            {presence.publicKey.toString("hex")}
                         </span>
                         <span if={presence.publicKey.equals(this.state.service.getPublicKey())} class="px-2 text-gray-400 text-sm italic">
                             (you)
@@ -94,7 +151,7 @@
             <div class="mb-8">
                 <div class="px-4 mb-2 text-rubriker flex justify-between items-center">
                     <div class="opacity-75">
-                        Channels
+                        Public channels
                     </div>
                     <div>
                         <a onclick={newChannel}>
@@ -104,17 +161,21 @@
                         </a>
                     </div>
                 </div>
-                <div style="min-height: 100px; max-height: 200px; overflow-y: scroll; scrollbar-width: thin;">
-                    <div class="py-1 px-4 bg-lankar text-rubriker">
-                        # SC2
+                <div style="min-height: 100px; max-height: 50%; overflow-y: scroll; scrollbar-width: thin; scrollbar-color: #0ac507 #484848;">
+                    <div if={state.channelListController?.getChannels().length <= 0}
+                        class="py-1 px-4 text-rubriker italic">
+                        None available at the moment
                     </div>
-                    <div class="py-1 px-4 text-rubriker">
-                        # Random
+
+                    <div each={channel in state.channelListController?.getChannels()}
+                        class="py-1 px-4 bg-lankar text-rubriker">
+                        # {channel.name}
                     </div>
                 </div>
             </div>
 
-            <div class="mb-8">
+            <div if={false} class="mb-8">
+                <!-- TODO: TO BE REMOVED, LEAVING HERE FOR DEBUG PURPOSES -->
                 <div class="flex px-4 mb-2 text-rubriker justify-between items-center">
                     <div class="opacity-75">
                         Direct Messages
@@ -214,12 +275,6 @@
                         </h1>
                     </div>
 
-                    <div if={state.openOdin?.isAuthed()}
-                        style="display: block; background-color: white;">
-                        <h1>Authorized as {this.state.service.getPublicKey().toString("hex")}</h1>
-                        <button type="button" onclick={state.openOdin.close}>Logout</button>
-                    </div>
-
                     <div if={state.service && !state.service.isRunning() && !state.service.isClosed()}
                         style="display: block; background-color: white;">
                         <button type="button" onclick={()=>state.service.start()}>Start Service</button>
@@ -230,9 +285,18 @@
                         <h1>Logged out</h1>
                         <button type="button" onclick={() => initState(true)}>Restart auth process</button>
                     </div>
-                </div>
 
-                <div class="ml-auto hidden md:block">
+                    <div if={state.channelListController?.getActiveController()}>
+                        <div class="text-rubriker opacity-75 text-ellipsis overflow-hidden">
+                            {state.channelListController.getActiveController()?.getName()}
+                        </div>
+
+                        <button title="Save visible history to file"
+                            onclick={()=>state.channelListController.getActiveController().saveHistory()}
+                            class="border-2 border-lankar bg-lankar">
+                            Save history
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -351,7 +415,7 @@
                 });
 
                 service.onStorageClose( () => {
-                    console.error("Disconnected from storage");
+                    console.info("Disconnected from storage");
 
                     this.handleStorageClose();
                 });
@@ -431,7 +495,7 @@
 
                 const presenceTemplate = this.state.service.getThreadTemplates().presence;
                 this.state.presenceController = new this.props.Globals.PresenceController(this.state.service, presenceTemplate);
-                this.state.presenceController.onUpdate(() => this.update()).onClose( () => console.error("Presence thread was closed") );
+                this.state.presenceController.onUpdate(() => this.update()).onClose( () => console.info("Presence thread was closed") );
 
                 this.state.notificationsController = new this.props.Globals.NotificationsController(document.title);
 
@@ -448,7 +512,7 @@
                 const messageTemplate = this.state.service.getThreadTemplates().channel;
                 this.state.channelListController = new this.props.Globals.ChannelListController(this.state.service, channelListTemplate, messageTemplate);
 
-                this.state.channelListController.onUpdate(() => this.update()).onClose( () => console.error("Channels thread was closed") );
+                this.state.channelListController.onUpdate(() => this.update()).onClose( () => console.info("Channels thread was closed") );
             },
 
             handleStorageClose() {
@@ -472,7 +536,13 @@
                 }
 
                 if (ret.action === "message") {
-                    const channelNode = await this.state.channelListController.makePrivateChannel(publicKey);
+                    const channelNode =
+                        await this.state.channelListController.makePrivateChannel(publicKey, ret.name);
+
+                    if (!channelNode) {
+                        alert("Could not create channel");
+                        return;
+                    }
 
                     // TODO: optimize
                     setTimeout( () => this.openChannel(channelNode.getId1()), 1000);
@@ -485,7 +555,42 @@
                 this.state.channelListController.setChannelActive(nodeId1);
 
                 this.update();
-            }
+            },
+
+            // Not sure how to otherwise assign scope based variables in "each" loops.
+            //
+            setVariable(val) {
+                this.tmpV = val;
+                return "";
+            },
+
+            getVariable() {
+                return this.tmpV;
+            },
         }
     </script>
+    <style>
+        .activeUser {
+            background-color: #535360;
+            border-radius: 20px;
+        }
+        .presence-menu {
+            position: relative;
+        }
+        .reaction-btn {
+            display: inline-block;
+        }
+        .presence-content {
+            display: none;
+            position: absolute;
+            background-color: #f1f1f1;
+            min-width: 100px;
+            min-height: 60px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .presence-menu:hover .presence-content {
+            display: inline-block;
+        }
+    </style>
 </app>
