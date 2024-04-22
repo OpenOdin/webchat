@@ -1,14 +1,11 @@
 <webchat-channel>
     <!-- Messages -->
     <div id="messagesList_{props.item.id1.toString("hex")}" class="px-6 py-4 flex-1 overflow-y-scroll">
-        <div class="flex items-start mb-4 text-base">
-            <button class="border-r-2 border-gray-4 text-blue-600"
-                onclick={()=>this.export()}>Export messages
-            </button>
-        </div>
-        <div class="flex items-start mb-4 text-base">
-            <button class="border-r-2 border-gray-4 text-blue-600"
-                onclick={()=>this.props.controller.loadHistory()}>Load more
+        <div class="items-start mb-4 text-base text-center">
+            <button class="loadmore-btn"
+                onclick={()=>this.props.controller.loadHistory()}>
+                <img title="Load more messages" src="gfx/icons8-load-24.png" />
+                <!-- icons credits: https://icons8.com/ -->
             </button>
         </div>
 
@@ -228,4 +225,12 @@
             },
         }
     </script>
+    <style>
+        .loadmore-btn {
+            opacity: 0.75;
+        }
+        .loadmore-btn:active {
+            opacity: 0.25;
+        }
+    </style>
 </webchat-channel>
