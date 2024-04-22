@@ -38,6 +38,8 @@ export type Channel = {
 
     /** When the channel is opened the controller is created and set. */
     controller?: MessageController,
+
+    id1: Buffer,
 };
 
 export class ChannelListController extends ThreadController {
@@ -66,6 +68,7 @@ export class ChannelListController extends ThreadController {
         channel.name            = MessageController.GetName(channelNode, this.getPublicKey());
         channel.isActive        = false;
         channel.hasNotification = false;
+        channel.id1             = channelNode.getId1()!;
     }
 
     /**
@@ -136,6 +139,8 @@ export class ChannelListController extends ThreadController {
      * @returns the controller of the channel which is active, if any.
      */
     public getActiveController(): MessageController | undefined {
+        // TODO: keep indexed for quicker retrievel
+        //
         const items = this.getItems();
 
         const itemsLength = items.length;
@@ -173,10 +178,16 @@ export class ChannelListController extends ThreadController {
      * @returns node of the private channel
      * @throws if channel node cannot be created.
      */
-    public async makePrivateChannel(friendPublicKey: Buffer): Promise<DataInterface> {
+    public async makePrivateChannel(friendPublicKey: Buffer, name: string):
+        Promise<DataInterface | undefined>
+    {
         // See if there already is a private chat for us and the user.
         //
         const ourPublicKey = this.getPublicKey();
+
+        if (!name) {
+            return;
+        }
 
         const items = this.getItems();
 
@@ -187,17 +198,25 @@ export class ChannelListController extends ThreadController {
 
             const node = item.node;
 
+            let exists = false;
+
             if (node.getOwner()?.equals(ourPublicKey)) {
                 if (node.getRefId()?.equals(friendPublicKey)) {
                     // Channel exists.
                     //
-                    return node;
+                    exists = true;
                 }
             }
             else if (node.getOwner()?.equals(friendPublicKey)) {
                 if (node.getRefId()?.equals(ourPublicKey)) {
                     // Channel exists.
                     //
+                    exists = true;
+                }
+            }
+
+            if (exists) {
+                if (node.getData()?.toString() === name) {
                     return node;
                 }
             }
@@ -207,6 +226,7 @@ export class ChannelListController extends ThreadController {
         //
         const node = await this.thread.post("channel", {
             refId: friendPublicKey,
+            data: Buffer.from(name),
         });
 
         if (node.isLicensed()) {
@@ -217,5 +237,88 @@ export class ChannelListController extends ThreadController {
         }
 
         return node;
+    }
+
+    public hasUserNotification(publicKey: Buffer): boolean {
+        const channels = this.getPrivateChannels(publicKey);
+
+        const channelsLength = channels.length;
+        for (let i=0; i<channelsLength; i++) {
+            const channel = channels[i];
+            if (channel.hasNotification) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public peerOfActive(publicKey: Buffer) {
+        const messageController = this.getActiveController();
+
+        if (messageController?.isPrivateChannel()) {
+            return messageController.peerOf(publicKey);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get list of non-private channels.
+     */
+    public getChannels(publicKey: Buffer): Channel[] {
+        // TODO: optimize
+        //
+
+        const channels: Channel[] = [];
+
+        const items = this.getItems();
+
+        const itemsLength = items.length;
+        for (let i=0; i<itemsLength; i++) {
+            const item = items[i];
+
+            const channel = item.data as Channel;
+
+            if (!channel.isPrivate) {
+                channels.push(channel);
+            }
+        }
+
+        return channels;
+    }
+
+    /**
+     * Get list of private channels for which peer publicKey is participant.
+     */
+    public getPrivateChannels(publicKey: Buffer): Channel[] {
+        // TODO optimize this with indexes
+        //
+
+        const channels: Channel[] = [];
+
+        const items = this.getItems();
+
+        const isSelf = this.service.getPublicKey().equals(publicKey);
+
+        const itemsLength = items.length;
+        for (let i=0; i<itemsLength; i++) {
+            const item = items[i];
+
+            const channel = item.data as Channel;
+
+            if (isSelf && item.node.getOwner()?.equals(publicKey) &&
+                item.node.getRefId()?.equals(publicKey))
+            {
+                channels.push(channel);
+            }
+            else if (!isSelf && (item.node.getOwner()?.equals(publicKey) ||
+                item.node.getRefId()?.equals(publicKey)))
+            {
+                channels.push(channel);
+            }
+        }
+
+        return channels;
     }
 }
