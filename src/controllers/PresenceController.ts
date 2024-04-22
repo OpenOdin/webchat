@@ -12,6 +12,7 @@ export type PresenceItem = {
     publicKey: Buffer,
     creationTime: number,
     displayName: string,
+    isActive: boolean,
 };
 
 export type PresenceState = {
@@ -124,6 +125,12 @@ export class PresenceController extends ThreadController {
         return this.state.activeList;
     }
 
+    public getList(): PresenceItem[] {
+        // TODO: this needs some types of smart sorting.
+        //
+        return Object.values(this.state.presence);
+    }
+
     /**
      * @returns list of public keys of inactive users.
      */
@@ -162,6 +169,7 @@ export class PresenceController extends ThreadController {
                     publicKey,
                     creationTime,
                     displayName: publicKey.toString("hex"),
+                    isActive: false,
                 };
             }
         });
@@ -192,10 +200,12 @@ export class PresenceController extends ThreadController {
             const diff = Date.now() - item.creationTime;
 
             if (diff < INACTIVE_THRESHOLD * 1.5) {
+                item.isActive = true;
                 this.state.active[publicKeyStr] = true;
                 this.state.activeList.push(item);
             }
             else {
+                item.isActive = false;
                 this.state.inactiveList.push(item);
             }
         }
