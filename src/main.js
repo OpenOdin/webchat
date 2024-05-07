@@ -1,3 +1,5 @@
+import "setimmediate";
+
 import Globals from "../build/Globals-browser.js";
 
 import * as riot from "riot";
