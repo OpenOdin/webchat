@@ -4,7 +4,7 @@ import Globals from "../build/Globals-browser.js";
 
 import * as riot from "riot";
 
-import { minidenticon } from 'minidenticons'
+import { minidenticon } from "minidenticons";
 
 import WebChatChannel from "./webchat-channel.riot";
 import WebChatMessage from "./webchat-message.riot";
