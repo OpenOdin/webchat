@@ -1,12 +1,13 @@
 import {
     Service,
-    ThreadController,
     DataInterface,
+    Thread,
     ThreadDataParams,
     ThreadFetchParams,
     ThreadTemplate,
     BrowserUtil,
     CRDTMessagesAnnotations,
+    CRDTViewItem,
 } from "openodin";
 
 import {
@@ -40,8 +41,10 @@ export type Message = {
     blobController?: BlobController,
 };
 
-export class MessageController extends ThreadController {
+export class MessageController {
     protected channelNode: DataInterface;
+
+    protected handlers: {[name: string]: ( (...args: any) => void)[]} = {};
 
     /** The limit of messages initially synced from the server. */
     protected limit: number = 10;
@@ -49,18 +52,17 @@ export class MessageController extends ThreadController {
     /** License targets. */
     private targets: Buffer[] = [];
 
-    constructor(channelNode: DataInterface, service: Service, threadTemplate: ThreadTemplate,
+    protected thread: Thread;
+
+    constructor(channelNode: DataInterface, protected service: Service, threadTemplate: ThreadTemplate,
         threadFetchParams: ThreadFetchParams = {}, purgeInterval?: number)
     {
         threadFetchParams.query = threadFetchParams.query ?? {};
         threadFetchParams.query.parentId = channelNode.getId();
 
-        // Do not autosync since we need to do this after the super() call to have access
-        // to this.limit (since "this" is not available before call to super()).
+        // auto sync is off since we need to fine tailor it and add it our selves.
         //
-        const autoSync = false;
-
-        super(service, threadTemplate, threadFetchParams, autoSync, purgeInterval);
+        this.thread = Thread.fromService(threadTemplate, threadFetchParams, service, true, /*autoSync=*/false, this.setData, this.unsetData, purgeInterval);
 
         this.channelNode = channelNode;
 
@@ -77,17 +79,19 @@ export class MessageController extends ThreadController {
             // TODO: what kind of permmissions do we want?
         }
 
-        this.onChange( (...args: any[]) => {
-            const appended = args[3];
-
+        this.thread.onChange( ({appended}) => {
             if (appended.length > 0) {
-                this.notify();
+                this.triggerEvent("notification");
             }
 
-            this.update();
+            this.triggerEvent("update");
         });
 
         this.addAutoSync();
+    }
+
+    public close() {
+        this.thread.close();
     }
 
     /**
@@ -145,9 +149,12 @@ export class MessageController extends ThreadController {
     }
 
     public getName(): string {
-        return  MessageController.GetName(this.channelNode, this.getPublicKey());
+        return  MessageController.GetName(this.channelNode, this.service.getPublicKey());
     }
 
+    /**
+     * Add tailored auto sync to Thread.
+     */
     protected addAutoSync() {
         // Here we are taking the Thread query and modifying its limits to be a sync query.
         //
@@ -163,7 +170,7 @@ export class MessageController extends ThreadController {
         fetchRequestReverse.query.match[0].limit = -1;
         fetchRequestReverse.query.match[1].limit = -1;
 
-        super.addAutoSync(fetchRequest, fetchRequestReverse);
+        this.thread.addAutoSync(fetchRequest, fetchRequestReverse);
     }
 
     public loadHistory() {
@@ -182,12 +189,12 @@ export class MessageController extends ThreadController {
      * @param node the node
      * @param message the data object to set (in place) associated with node
      */
-    protected makeData(node: DataInterface, message: any) {
+    protected setData = (node: DataInterface, message: Message | any) => {
         message.isAuthor            = node.getOwner()!.equals(this.service.getPublicKey());
-        message.text                = node.getData()?.toString();
+        message.text                = node.getData()?.toString() ?? "";
         message.publicKey           = node.getOwner()!.toString("hex");
         message.id1                 = node.getId1()!.toString("hex");
-        message.creationTimestamp   = new Date(node.getCreationTime()!);
+        message.creationTimestamp   = new Date(node.getCreationTime()!).toString();
         message.reactions           = message.reactions ?? {hasMore: false, list: []};
 
         if (node.hasBlob()) {
@@ -197,7 +204,7 @@ export class MessageController extends ThreadController {
                 //
                 message.blobController = new BlobController(node, this.service, this.thread);
 
-                message.blobController.onUpdate( () => this.update() );
+                message.blobController.onUpdate( () => this.triggerEvent("update") );
 
                 message.blobLength = node.getBlobLength() ?? 0n;
 
@@ -256,7 +263,7 @@ export class MessageController extends ThreadController {
      *
      * @param message
      */
-    protected purgeData(message: Message) {
+    protected unsetData = (id1: Buffer, message: Message | any) => {
         message.blobController?.purge();
     }
 
@@ -267,7 +274,7 @@ export class MessageController extends ThreadController {
         const params: ThreadDataParams = {
             // Refer to the last message as refId.
             // This is so the CRDT algorithm can sort the messages.
-            refId: this.getLastItem()?.node.getId1(),
+            refId: this.thread.getStream().getView().getLastItem()?.node.getId1(),
 
             // The message sent.
             data: Buffer.from(text),
@@ -348,16 +355,16 @@ export class MessageController extends ThreadController {
 
         const filename = file.name;
 
-        this.update({hashing: true});
+        this.triggerEvent("update", {hashing: true});
 
         const blobHash = await BrowserUtil.HashFileBrowser(file);
 
-        this.update({hashing: false});
+        this.triggerEvent("update", {hashing: false});
 
         const blobLength = BigInt(file.size);
 
         const node = await this.thread.post("attachment", {
-                refId: this.getLastItem()?.node.getId1(),
+                refId: this.thread.getStream().getView().getLastItem()?.node.getId1(),
                 blobHash,
                 blobLength,
                 data: Buffer.from(filename),
@@ -373,13 +380,13 @@ export class MessageController extends ThreadController {
         //
         const message: any = {};
 
-        this.setData(node.getId1()!, message);
+        this.thread.getStream().getView().setData(node.getId1()!, message);
 
         // Create the BlobController for uploading.
         //
         message.blobController = new BlobController(node, this.service, this.thread);
 
-        message.blobController.onUpdate( () => this.update() );
+        message.blobController.onUpdate( () => this.triggerEvent("update") );
 
         message.blobController.upload(file);
     }
@@ -397,7 +404,7 @@ export class MessageController extends ThreadController {
         // Add ruler
         data += "==================================================================================================================\n";
 
-        const items = this.getItems();
+        const items = this.thread.getStream().getView().getItems();
         for(let i=0; i<items.length; i++) {
             const itemData = items[i].data;
             data += itemData.publicKey + "\n";
@@ -424,5 +431,54 @@ export class MessageController extends ThreadController {
         anchorElement.click();
         URL.revokeObjectURL(anchorElement.href);
         anchorElement.remove();
+    }
+
+    public getItems(): CRDTViewItem[] {
+        return this.thread.getStream().getView().getItems();
+    }
+
+    public onClose(cb: () => void): MessageController {
+        this.thread.onClose(cb);
+        return this;
+    }
+
+    public offClose(cb: () => void) {
+        this.thread.offClose(cb);
+    }
+
+    public onNotification(cb: () => void): MessageController {
+        this.hookEvent("notification", cb);
+        return this;
+    }
+
+    public offNotification(cb: () => void) {
+        this.hookEvent("notification", cb);
+    }
+
+    public onUpdate(cb: (obj?: Record<string, any>) => void): MessageController {
+        this.hookEvent("update", cb);
+        return this;
+    }
+
+    public offUpdate(cb: (obj?: Record<string, any>) => void) {
+        this.unhookEvent("update", cb);
+    }
+
+    protected hookEvent(name: string, callback: ( (...args: any[]) => void)) {
+        const cbs = this.handlers[name] || [];
+        this.handlers[name] = cbs;
+        cbs.push(callback);
+    }
+
+    protected unhookEvent(name: string, callback: ( (...args: any[]) => void)) {
+        const cbs = (this.handlers[name] || []).filter( (cb: ( (...args: any) => void)) => callback !== cb );
+        this.handlers[name] = cbs;
+    }
+
+    protected triggerEvent(name: string, ...args: any[]) {
+        const cbs = this.handlers[name] || [];
+        cbs.forEach( (callback: ( (...args: any[]) => void)) => {
+            setImmediate( () => callback(...args) );
+        });
     }
 }

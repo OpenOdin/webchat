@@ -52,7 +52,7 @@
     },
     "dependencies": {
         "minidenticons": "^4.2.0",
-        "openodin": "=0.8.7",
+        "openodin": "=0.8.8",
         "sql.js": "=1.8.0"
     }
 }
