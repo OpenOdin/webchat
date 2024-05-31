@@ -1,11 +1,11 @@
 import {
-    CRDTViewItem,
     Hash,
-    ThreadController,
+    Thread,
     ThreadFetchParams,
     ThreadTemplate,
     Service,
     NodeInterface,
+    CRDTViewItem,
 } from "openodin";
 
 export type PresenceItem = {
@@ -38,17 +38,21 @@ export type PresenceState = {
 //
 const INACTIVE_THRESHOLD = 1 * 60 * 1000;  // one minute
 
-export class PresenceController extends ThreadController {
+export class PresenceController {
     protected pulseTimer?: ReturnType<typeof setTimeout>;
 
     protected refreshTimer?: ReturnType<typeof setTimeout>;
 
     protected state: PresenceState;
 
+    protected thread: Thread;
+
+    protected handlers: {[name: string]: ( (...args: any) => void)[]} = {};
+
     constructor(service: Service, threadTemplate: ThreadTemplate,
         threadFetchParams: ThreadFetchParams = {})
     {
-        super(service, threadTemplate, threadFetchParams);
+        this.thread = Thread.fromService(threadTemplate, threadFetchParams, service, true, true);
 
         this.state = {
             lastActivityDetected: 0,
@@ -59,13 +63,17 @@ export class PresenceController extends ThreadController {
             presence: {},
         };
 
-        this.onData( (added: NodeInterface[]) => this.handleOnChange(added) );
+        this.thread.onChange( ({added}) => this.handleOnChange(added) );
 
         this.refreshTimer = setTimeout(() => this.refreshPresence(), INACTIVE_THRESHOLD / 4);
 
         this.pulseTimer = setTimeout( () => this.postPresence(), INACTIVE_THRESHOLD);
 
         this.thread.post("existence");
+    }
+
+    public getItems(): CRDTViewItem[] {
+        return this.thread.getStream().getView().getItems();
     }
 
     /**
@@ -108,14 +116,40 @@ export class PresenceController extends ThreadController {
         return this.state.isActive;
     }
 
+    public onUpdate(cb: () => void): PresenceController {
+        this.hookEvent("update", cb);
+        return this;
+    }
+
+    public offUpdate(cb: () => void) {
+        this.unhookEvent("update", cb);
+    }
+
     public onActive(cb: () => void): PresenceController {
         this.hookEvent("active", cb);
         return this;
     }
 
+    public offActive(cb: () => void) {
+        this.unhookEvent("active", cb);
+    }
+
     public onInactive(cb: () => void): PresenceController {
         this.hookEvent("inactive", cb);
         return this;
+    }
+
+    public offInactive(cb: () => void) {
+        this.unhookEvent("inactive", cb);
+    }
+
+    public onClose(cb: () => void): PresenceController {
+        this.thread.onClose(cb);
+        return this;
+    }
+
+    public offClose(cb: () => void) {
+        this.thread.offClose(cb);
     }
 
     /**
@@ -149,10 +183,12 @@ export class PresenceController extends ThreadController {
 
     /**
      * In this controller it makes more sense to hook the onChange event rather than implementing the
-     * makeData() function since we are using a special struct which is not per node.
+     * setData() function since we are using a special struct which is not per node.
      */
-    protected handleOnChange(added: NodeInterface[]) {
-        added.forEach( node => {
+    protected handleOnChange(added: CRDTViewItem[]) {
+        added.forEach( crdtItem => {
+            const node = crdtItem.node;
+
             const publicKey = node?.getOwner();
 
             if (!node || !publicKey) {
@@ -218,14 +254,32 @@ export class PresenceController extends ThreadController {
         //
         this.state.inactiveList.sort( (a, b) => b.creationTime - a.creationTime );
 
-        this.update();
+        this.triggerEvent("update");
     }
 
     public close() {
-        super.close();
+        this.thread.close();
 
         clearTimeout(this.refreshTimer);
 
         clearTimeout(this.pulseTimer);
+    }
+
+    protected hookEvent(name: string, callback: ( (...args: any[]) => void)) {
+        const cbs = this.handlers[name] || [];
+        this.handlers[name] = cbs;
+        cbs.push(callback);
+    }
+
+    protected unhookEvent(name: string, callback: ( (...args: any[]) => void)) {
+        const cbs = (this.handlers[name] || []).filter( (cb: ( (...args: any) => void)) => callback !== cb );
+        this.handlers[name] = cbs;
+    }
+
+    protected triggerEvent(name: string, ...args: any[]) {
+        const cbs = this.handlers[name] || [];
+        cbs.forEach( (callback: ( (...args: any[]) => void)) => {
+            setImmediate( () => callback(...args) );
+        });
     }
 }

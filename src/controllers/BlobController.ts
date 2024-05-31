@@ -291,8 +291,9 @@ export class BlobController {
         }
     }
 
-    public onUpdate(cb: () => void) {
+    public onUpdate(cb: () => void): BlobController {
         this.hookEvent("update", cb);
+        return this;
     }
 
     protected update() {

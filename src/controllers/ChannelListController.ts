@@ -1,9 +1,10 @@
 import {
     Service,
-    ThreadController,
+    Thread,
     ThreadTemplate,
     ThreadFetchParams,
     DataInterface,
+    CRDTViewItem,
 } from "openodin";
 
 import {
@@ -42,18 +43,35 @@ export type Channel = {
     id1: Buffer,
 };
 
-export class ChannelListController extends ThreadController {
-    protected messageThreadTemplate: ThreadTemplate;
+export class ChannelListController {
+    protected thread: Thread;
 
-    constructor(service: Service, threadTemplate: ThreadTemplate,
-        messageThreadTemplate: ThreadTemplate,
+    protected handlers: {[name: string]: ( (...args: any) => void)[]} = {};
+
+    constructor(protected service: Service, threadTemplate: ThreadTemplate,
+        protected messageThreadTemplate: ThreadTemplate,
         threadFetchParams: ThreadFetchParams = {})
     {
-        super(service, threadTemplate, threadFetchParams);
+        this.thread = Thread.fromService(threadTemplate, threadFetchParams, service, true, true, this.setData);
 
-        this.messageThreadTemplate = messageThreadTemplate;
+        this.thread.onChange( () => this.triggerEvent("update") );
+    }
 
-        this.onChange( () => this.update() );
+    public close() {
+        this.thread.close();
+    }
+
+    public getItems(): CRDTViewItem[] {
+        return this.thread.getStream().getView().getItems();
+    }
+
+    public onClose(cb: () => void): ChannelListController {
+        this.thread.onClose(cb);
+        return this;
+    }
+
+    public offClose(cb: () => void) {
+        this.thread.offClose(cb);
     }
 
     /**
@@ -63,9 +81,9 @@ export class ChannelListController extends ThreadController {
      * @param channelNode the channelNode
      * @param message the data object to set (in place) associated with node
      */
-    protected makeData(channelNode: DataInterface, channel: Channel) {
+    protected setData = (channelNode: DataInterface, channel: Channel | any) => {
         channel.isPrivate       = MessageController.IsPrivateChannel(channelNode);
-        channel.name            = MessageController.GetName(channelNode, this.getPublicKey());
+        channel.name            = MessageController.GetName(channelNode, this.service.getPublicKey());
         channel.isActive        = false;
         channel.hasNotification = false;
         channel.id1             = channelNode.getId1()!;
@@ -78,7 +96,7 @@ export class ChannelListController extends ThreadController {
      * @returns the message controller for the channel
      */
     public openChannel(channelNodeId1: Buffer): MessageController {
-        const item = this.findItem(channelNodeId1);
+        const item = this.thread.getStream().getView().findItem(channelNodeId1);
 
         if (!item) {
             throw new Error("Could not create controller for non existing channel");
@@ -98,7 +116,7 @@ export class ChannelListController extends ThreadController {
                 if (channel.isActive === false) {
                     channel.hasNotification = true;
 
-                    this.update();
+                    this.triggerEvent("update");
                 }
             });
 
@@ -122,7 +140,7 @@ export class ChannelListController extends ThreadController {
      * @param channelNodeId1 id1 of the channel to set as active.
      */
     public setChannelActive(channelNodeId1: Buffer) {
-        this.getItems().forEach( item => {
+        this.thread.getStream().getView().getItems().forEach( item => {
             const channel = item.data as Channel;
 
             if (item.id1.equals(channelNodeId1)) {
@@ -141,7 +159,7 @@ export class ChannelListController extends ThreadController {
     public getActiveController(): MessageController | undefined {
         // TODO: keep indexed for quicker retrieval
         //
-        const items = this.getItems();
+        const items = this.thread.getStream().getView().getItems();
 
         const itemsLength = items.length;
         for (let i=0; i<itemsLength; i++) {
@@ -161,7 +179,7 @@ export class ChannelListController extends ThreadController {
      * @param channelNodeId1 the id1 of the channel.
      */
     public hasNotification(channelNodeId1: Buffer): boolean {
-        const item = this.findItem(channelNodeId1);
+        const item = this.thread.getStream().getView().findItem(channelNodeId1);
 
         if (item) {
             const channel = item.data as Channel;
@@ -183,13 +201,13 @@ export class ChannelListController extends ThreadController {
     {
         // See if there already is a private chat for us and the user.
         //
-        const ourPublicKey = this.getPublicKey();
+        const ourPublicKey = this.service.getPublicKey();
 
         if (!name) {
             return;
         }
 
-        const items = this.getItems();
+        const items = this.thread.getStream().getView().getItems();
 
         const itemsLength = items.length;
 
@@ -272,7 +290,7 @@ export class ChannelListController extends ThreadController {
 
         const channels: Channel[] = [];
 
-        const items = this.getItems();
+        const items = this.thread.getStream().getView().getItems();
 
         const itemsLength = items.length;
         for (let i=0; i<itemsLength; i++) {
@@ -297,7 +315,7 @@ export class ChannelListController extends ThreadController {
 
         const channels: Channel[] = [];
 
-        const items = this.getItems();
+        const items = this.thread.getStream().getView().getItems();
 
         const isSelf = this.service.getPublicKey().equals(publicKey);
 
@@ -320,5 +338,32 @@ export class ChannelListController extends ThreadController {
         }
 
         return channels;
+    }
+
+    public onUpdate(cb: () => void): ChannelListController {
+        this.hookEvent("update", cb);
+        return this;
+    }
+
+    public offUpdate(cb: () => void) {
+        this.unhookEvent("update", cb);
+    }
+
+    protected hookEvent(name: string, callback: ( (...args: any[]) => void)) {
+        const cbs = this.handlers[name] || [];
+        this.handlers[name] = cbs;
+        cbs.push(callback);
+    }
+
+    protected unhookEvent(name: string, callback: ( (...args: any[]) => void)) {
+        const cbs = (this.handlers[name] || []).filter( (cb: ( (...args: any) => void)) => callback !== cb );
+        this.handlers[name] = cbs;
+    }
+
+    protected triggerEvent(name: string, ...args: any[]) {
+        const cbs = this.handlers[name] || [];
+        cbs.forEach( (callback: ( (...args: any[]) => void)) => {
+            setImmediate( () => callback(...args) );
+        });
     }
 }
