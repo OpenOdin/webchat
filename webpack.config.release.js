@@ -1,6 +1,7 @@
 const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
     node: {
@@ -57,5 +58,13 @@ module.exports = {
             stream: require.resolve("stream-browserify"),
             buffer: require.resolve("buffer/")
         }
+    },
+    optimization: {
+        minimize: true,
+        minimizer: [
+            new TerserPlugin({
+                include: /minidenticon/,
+            }),
+        ],
     }
 };
