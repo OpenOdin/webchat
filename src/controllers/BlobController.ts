@@ -40,6 +40,8 @@ export class BlobController {
 
     protected id1: Buffer;
 
+    protected expectedLength: bigint;
+
     protected downloadStreamWriter?: StreamWriterInterface;
 
     protected uploadStreamWriter?: StreamWriterInterface;
@@ -60,6 +62,14 @@ export class BlobController {
 
     constructor(protected node: DataInterface, protected service: Service, protected thread: Thread) {
         this.id1 = this.node.getId1()!;
+
+        const expectedLength = this.node.getBlobLength();
+
+        if (expectedLength === undefined) {
+            throw new Error("Node not configured for blob");
+        }
+
+        this.expectedLength = expectedLength;
 
         this.filename = this.node.getData()?.toString() ?? "";
 
@@ -156,7 +166,7 @@ export class BlobController {
 
         this.clearErrors();
 
-        const streamReader = this.thread.getBlobStreamReader(this.id1);
+        const streamReader = this.thread.getBlobStreamReader(this.id1, this.expectedLength);
 
         // Download blob into memory.
         //
