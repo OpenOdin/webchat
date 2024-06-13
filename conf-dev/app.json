@@ -1,6 +1,6 @@
 {
     "name": "webchat",
-    "version": "0.1",
+    "version": "0.1.0",
     "title": "OpenOdin Interoperable Messaging",
     "description": "",
     "homepage": "https://openodin.com",
@@ -12,7 +12,7 @@
                 "parentId": "0000000000000000000000000000000000000000000000000000000000000001",
                 "match": [
                     {
-                        "nodeType": "00040001",
+                        "nodeType": "Data0",
                         "filters": [
                             {
                                 "field": "contentType",
@@ -23,11 +23,12 @@
                         "limitField": {
                             "name": "owner",
                             "limit": 1
-                        }
+                        },
+                        "limit": 1000
                     }
                 ],
                 "depth": 1,
-                "limit": 1000,
+                "limit": 10000,
                 "descending": true
             },
             "post": {
@@ -51,7 +52,7 @@
                 "parentId": "0000000000000000000000000000000000000000000000000000000000000002",
                 "match": [
                     {
-                        "nodeType": "00040001",
+                        "nodeType": "Data0",
                         "filters": [
                             {
                                 "field": "contentType",
@@ -89,7 +90,7 @@
             "query": {
                 "match": [
                     {
-                        "nodeType": "00040001",
+                        "nodeType": "Data0",
                         "filters": [
                             {
                                 "field": "contentType",
@@ -101,7 +102,7 @@
                         "limit": 3000
                     },
                     {
-                        "nodeType": "00040001",
+                        "nodeType": "Data0",
                         "filters": [
                             {
                                 "field": "contentType",
