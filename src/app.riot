@@ -36,6 +36,12 @@
                                 <div class="text-underrubriker text-base opacity-80">
                                     Syncing with {state.connectedPeers} peer(s)
                                 </div>
+
+                                <div if={state.attentionCount > 0}
+                                    title="Your attention is needed in the Data Wallet browser extension. Please click the icon in your browser toolbar and follow the instructions.">
+                                    <img src="gfx/openodin-logo.png" class="w-7 h-7 p-1 m-1 inline animate-bounce bg-white border rounded">
+                                    <span class="text-red-500 text-xs">Action needed</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -349,6 +355,7 @@
                     channelListController: undefined,
                     storageConnected: false,
                     connectedPeers: 0,
+                    attentionCount: 0,
                 };
 
                 // Note: we are allowing config files to be fetched from any domain and location.
@@ -373,6 +380,14 @@
                 const openOdin = new this.props.Globals.OpenOdin(appConf, autoAuth);
 
                 openOdin.onOpen( () => {
+                    openOdin.getRemoteInfo().then( ver => {
+                        console.log({
+                            version: openOdin.getVersion(),
+                            appVersion: openOdin.getAppVersion(),
+                            dataWallet: {...ver},
+                        });
+                    });
+
                     this.update();
                 });
 
@@ -398,6 +413,10 @@
                     this.update({
                         error,
                     });
+                });
+
+                openOdin.onAttentionNeeded( (attentionCount) => {
+                    this.update({attentionCount: attentionCount});
                 });
 
                 this.state = {...this.state, openOdin};
@@ -468,6 +487,10 @@
                     handshakeFactory.onHandshakeError( (error) => {
                         console.error("Handshake error", error.message);
                     });
+                });
+
+                service.onPeerFactoryCreateError( (error) => {
+                    console.error("Could not create peer connection factory", error.message);
                 });
 
                 service.onStop( () => {
@@ -592,6 +615,9 @@
         }
         .presence-menu:hover .presence-content {
             display: inline-block;
+        }
+        .animate-bounce {
+            animation: bounce 1s infinite;
         }
     </style>
 </app>
