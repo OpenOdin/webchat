@@ -365,28 +365,31 @@
 
                 console.debug("Loading JSON conf file:", jsonpath);
 
-                let appConf;
+                const json = await (await fetch(jsonpath)).json();
 
-                try {
-                    appConf = await this.props.Globals.OpenOdin.LoadAppConf(jsonpath);
-                }
-                catch(e) {
-                    console.error(`Could not load or parse ${jsonpath} JSON config file`, e);
-
-                    return;
-                }
-
-                const autoAuth = true;
-                const openOdin = new this.props.Globals.OpenOdin(appConf, autoAuth);
+                const openOdin = new this.props.Globals.OpenOdin();
 
                 openOdin.onOpen( () => {
+                    if (openOdin.isAuthed() || openOdin.isPendingAuth() || openOdin.isClosed()) {
+                        return;
+                    }
+
                     openOdin.getRemoteInfo().then( ver => {
                         console.log({
-                            version: openOdin.getVersion(),
-                            appVersion: openOdin.getAppVersion(),
+                            openOdinVersion: openOdin.getVersion(),
                             dataWallet: {...ver},
                         });
                     });
+
+                    try {
+                        console.log(json);
+                        const appConf = this.props.Globals.OpenOdin.ParseAppConf(json);
+
+                        openOdin.auth(appConf);
+                    }
+                    catch(e) {
+                        console.error(`Could not load or parse ${jsonpath} JSON config file`, e);
+                    }
 
                     this.update();
                 });

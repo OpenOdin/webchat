@@ -1,7 +1,7 @@
 import {
     Hash,
     Thread,
-    ThreadFetchParams,
+    ThreadVariables,
     ThreadTemplate,
     Service,
     NodeInterface,
@@ -50,9 +50,9 @@ export class PresenceController {
     protected handlers: {[name: string]: ( (...args: any) => void)[]} = {};
 
     constructor(service: Service, threadTemplate: ThreadTemplate,
-        threadFetchParams: ThreadFetchParams = {})
+        threadVariables: ThreadVariables = {})
     {
-        this.thread = Thread.fromService(threadTemplate, threadFetchParams, service, true, true);
+        this.thread = Thread.fromService(threadTemplate, threadVariables, service, true, true);
 
         this.state = {
             lastActivityDetected: 0,
