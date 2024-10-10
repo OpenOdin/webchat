@@ -2,7 +2,7 @@ import {
     Service,
     Thread,
     ThreadTemplate,
-    ThreadFetchParams,
+    ThreadVariables,
     DataInterface,
     CRDTViewItem,
 } from "openodin";
@@ -50,9 +50,9 @@ export class ChannelListController {
 
     constructor(protected service: Service, threadTemplate: ThreadTemplate,
         protected messageThreadTemplate: ThreadTemplate,
-        threadFetchParams: ThreadFetchParams = {})
+        threadVariables: ThreadVariables = {})
     {
-        this.thread = Thread.fromService(threadTemplate, threadFetchParams, service, true, true, this.setData);
+        this.thread = Thread.fromService(threadTemplate, threadVariables, service, true, true, this.setData);
 
         this.thread.onChange( () => this.triggerEvent("update") );
     }
@@ -248,10 +248,8 @@ export class ChannelListController {
         });
 
         if (node.isLicensed()) {
-            await this.thread.postLicense("channel", node, {
-                targets: friendPublicKey.equals(ourPublicKey) ? [ourPublicKey] :
-                    [friendPublicKey, ourPublicKey],
-            });
+            await this.thread.postLicense("channel", node, friendPublicKey.equals(ourPublicKey) ?
+                [ourPublicKey] : [friendPublicKey, ourPublicKey]);
         }
 
         return node;

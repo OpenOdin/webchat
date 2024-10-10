@@ -2,8 +2,7 @@ import {
     Service,
     DataInterface,
     Thread,
-    ThreadDataParams,
-    ThreadFetchParams,
+    ThreadVariables,
     ThreadTemplate,
     BrowserUtil,
     CRDTMessagesAnnotations,
@@ -47,22 +46,22 @@ export class MessageController {
     protected handlers: {[name: string]: ( (...args: any) => void)[]} = {};
 
     /** The limit of messages initially synced from the server. */
-    protected limit: number = 10;
+    protected limit: number = 24;
 
     /** License targets. */
     private targets: Buffer[] = [];
 
     protected thread: Thread;
 
-    constructor(channelNode: DataInterface, protected service: Service, threadTemplate: ThreadTemplate,
-        threadFetchParams: ThreadFetchParams = {}, purgeInterval?: number)
+    constructor(channelNode: DataInterface, protected service: Service,
+        threadTemplate: ThreadTemplate,
+        threadVariables: ThreadVariables = {}, purgeInterval?: number)
     {
-        threadFetchParams.query = threadFetchParams.query ?? {};
-        threadFetchParams.query.parentId = channelNode.getId();
+        threadVariables.parentId = channelNode.getId();
 
         // auto sync is off since we need to fine tailor it and add it our selves.
         //
-        this.thread = Thread.fromService(threadTemplate, threadFetchParams, service, true, /*autoSync=*/false, this.setData, this.unsetData, purgeInterval);
+        this.thread = Thread.fromService(threadTemplate, threadVariables, service, true, /*autoSync=*/false, this.setData, this.unsetData, purgeInterval);
 
         this.channelNode = channelNode;
 
@@ -87,7 +86,7 @@ export class MessageController {
             this.triggerEvent("update");
         });
 
-        this.addAutoSync();
+        this.setAutoSync();
     }
 
     public close() {
@@ -153,24 +152,13 @@ export class MessageController {
     }
 
     /**
-     * Add tailored auto sync to Thread.
+     * Set tailored auto sync to Thread.
      */
-    protected addAutoSync() {
-        // Here we are taking the Thread query and modifying its limits to be a sync query.
+    protected setAutoSync() {
+        // Set the reverse fetch to not have any limit (-1) so to not miss to sync
+        // things to the remote peer (push) in cases of being offline.
         //
-        const fetchRequest = this.thread.getFetchRequest(true);
-        fetchRequest.query.match[0].limit = this.limit;
-        fetchRequest.query.match[1].limit = this.limit;
-
-        // Set the reverse fetch to not have any limit so to not miss to sync
-        // things in cases of being offline.
-        // This is data the client is pushing to the server.
-        //
-        const fetchRequestReverse = this.thread.getFetchRequest(true);
-        fetchRequestReverse.query.match[0].limit = -1;
-        fetchRequestReverse.query.match[1].limit = -1;
-
-        this.thread.addAutoSync(fetchRequest, fetchRequestReverse);
+        this.thread.setAutoSync({limit: this.limit}, {limit: -1});
     }
 
     public loadHistory() {
@@ -179,7 +167,7 @@ export class MessageController {
         // Calling this will first remove any sync then add the sync again
         // with the new limit in place.
         //
-        this.addAutoSync();
+        this.setAutoSync();
     }
 
     /**
@@ -271,33 +259,33 @@ export class MessageController {
      * @throws on error
      */
     public async sendMessage(text: string) {
-        const params: ThreadDataParams = {
+        const params: ThreadVariables = {
             // Refer to the last message as refId.
             // This is so the CRDT algorithm can sort the messages.
             refId: this.thread.getStream().getView().getLastItem()?.node.getId1(),
 
             // The message sent.
             data: Buffer.from(text),
+
+            parentId: this.channelNode.getId(),
         };
 
         const node = await this.thread.post("message", params);
 
         if (node.isLicensed()) {
-            await this.thread.postLicense("default", node, { targets: this.targets });
+            await this.thread.postLicense("default", node, this.targets);
         }
     }
 
     public async editMessage(nodeToEdit: DataInterface, messageText: string) {
-        const params = {
+        const params: ThreadVariables = {
             data: Buffer.from(messageText),
         };
 
         const node = await this.thread.postEdit("message", nodeToEdit, params);
 
         if (node.isLicensed()) {
-            await this.thread.postLicense("default", node, {
-                targets: this.targets,
-            });
+            await this.thread.postLicense("default", node, this.targets);
         }
     }
 
@@ -312,16 +300,14 @@ export class MessageController {
             onoff = "unreact";
         }
 
-        const params = {
+        const params: ThreadVariables = {
             data: Buffer.from(`${onoff}/${name}`),
         };
 
         const node = await this.thread.postReaction("message", nodeToReactTo, params);
 
         if (node.isLicensed()) {
-            await this.thread.postLicense("default", node, {
-                targets: this.targets,
-            });
+            await this.thread.postLicense("default", node, this.targets);
         }
     }
 
@@ -339,9 +325,7 @@ export class MessageController {
 
             destroyNodes.forEach( async (node) => {
                 if (node.isLicensed() && node.getLicenseMinDistance() === 0) {
-                    /*const licenses = */await this.thread.postLicense("default", node, {
-                        targets: this.targets,
-                    });
+                    /*const licenses = */await this.thread.postLicense("default", node, this.targets);
                 }
             });
         }, 1000);
@@ -371,16 +355,12 @@ export class MessageController {
             });
 
         if (node.isLicensed()) {
-            await this.thread.postLicense("default", node, {
-                targets: this.targets,
-            });
+            await this.thread.postLicense("default", node, this.targets);
         }
 
         // Pre-create the message with many missing properties (which is fine).
         //
         const message: any = {};
-
-        this.thread.getStream().getView().setData(node.getId1()!, message);
 
         // Create the BlobController for uploading.
         //
@@ -389,6 +369,11 @@ export class MessageController {
         message.blobController.onUpdate( () => this.triggerEvent("update") );
 
         message.blobController.upload(file);
+
+        // Important to call setData after we have set blobController on the message
+        // so it won't attempt a download directly.
+        //
+        this.thread.getStream().getView().setData(node.getId1()!, message);
     }
 
     public saveHistory() {
