@@ -42,7 +42,7 @@
 
     <template if={props.item.data.blobController.getSyncError()}>
         <div class="italic">
-            <span>Error syncing from peer(s)</span>
+            <span>Error syncing from peer(s): {props.item.data.blobController.getSyncError()}</span>
         </div>
 
         <div class="italic">
